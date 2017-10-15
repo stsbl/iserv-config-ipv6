@@ -1,0 +1,583 @@
+#!/usr/bin/perl -CSDAL
+use warnings;
+use strict;
+use utf8;
+use Socket;
+use File::Slurp::Unicode;
+use Getopt::Long;
+use Tie::IxHash;
+use File::Basename;
+use IServ::IO;
+use IServ::IConf;
+use IServ::Dialog qw(msgbox confirm inputbox menu checklist);
+use Regexp::IPv6;
+
+my $mask_ip = qr/($Regexp::IPv6::IPv6_re)/;
+my $mask_ips = qr/$mask_ip(?: $mask_ip)*/;
+
+my $TITLE = "Netzwerkschnittstellen (IPv6)";
+my $cfg = "/etc/network/interfaces.d/ipv6";
+my $fn_delegation = "/var/lib/iserv/config/ipv6-delegation-interfaces.list";
+my $fn_dhcp = "/var/lib/iserv/config/ipv6-dhcp-interfaces.list";
+
+my %dhcp_interfaces;
+my %delegation_interfaces;
+
+$IServ::Dialog::backtitle = "IServ-Konfiguration > $TITLE";
+
+sub unique(@) { sort keys %{{map {($_, undef)} @_}} }
+sub subtract(\@@) {
+  my ($a, @b) = @_; grep {my $a = $_; !grep {$_ eq $a} @b;} @$a; }
+
+sub getproc(@)
+{
+  local $ENV{LC_ALL} = "C";
+  open FP, "-|", map { defined $_? $_: "" } @_ or die $!;
+  my @res = <FP>;
+  close FP;
+  wantarray? @res: join "", @res;
+}
+
+{
+  my $cache;
+  my $ids = "/usr/share/misc/pci.ids";
+  sub pci_parse()
+  {
+    return $cache if $cache;
+    return unless -f $ids;
+    my ($v, $d);
+    my %res;
+    local $_;
+    open FP, "<", $ids or die $!;
+    while (<FP>)
+    {
+      next if /^#|^$/;
+      if (/^(\w{4})  (.+)$/)
+      {
+	$v = $1;
+	$res{$v}{_} = $2;
+      }
+      elsif (/^\t(\w{4})  (.+)$/)
+      {
+	$d = $1;
+	$res{$v}{$d}{_} = $2;
+      }
+      elsif (/^\t\t(\w{4}) (\w{4})  (.+)$/)
+      {
+	$res{$v}{$d}{$1}{$2}{_} = $3;
+      }
+    }
+    close FP;
+    $cache = \%res;
+  }
+}
+
+sub pci_lookup(@)
+{
+  my $d = pci_parse;
+  my @res;
+  while (@_)
+  {
+    my $key = shift;
+    push @res, $d->{$key}{_} if $d->{$key}{_};
+    $d = $d->{$key};
+  }
+  @res? join " ", @res: undef;
+}
+
+sub if_hardware($)
+{
+  my ($if) = @_;
+  my $dir = "/sys/class/net/$if/device";
+  my @ids;
+  for (grep -f "$dir/$_", qw(vendor device subsystem_vendor subsystem_device))
+  {
+    push @ids, (getfile "$dir/$_") =~ /0x(.+)/g;
+  }
+  pci_lookup @ids;
+}
+
+sub if_mac($)
+{
+  my ($if) = @_;
+  my $fn = "/sys/class/net/$if/address";
+  return unless -f $fn;
+  my $res = getfile $fn;
+  chomp $res;
+  $res;
+}
+
+sub if_status($)
+{
+  my ($if) = @_;
+  my ($key, %res);
+  tie %res, "Tie::IxHash";
+  for (getproc "ethtool", $if)
+  {
+    if (/^\t(.+):\s+(.*)/)
+    {
+      $key = $1;
+      $res{$key} = $2;
+    }
+    elsif (/^\t\s+(.*)/)
+    {
+      $res{$key} .= $1;
+    }
+  }
+  return %res if wantarray;
+
+  my @res;
+  push @res, "no link" unless
+    defined $res{"Link detected"} and $res{"Link detected"} eq "yes";
+  push @res, $res{Speed} if defined $res{Speed};
+  push @res, "$res{Duplex} duplex" if defined $res{Duplex};
+  return @res? join ", ", @res: undef;
+}
+
+sub ifs_parse()
+{
+  my $if;
+  my %conf;
+  for (getfile $cfg)
+  {
+    s/^\s+|\s$//g;
+    next if /^#|^$/;
+    my ($k, @v) = split /\s+/, $_;
+    if ($k eq "auto" or $k =~ /^allow-/)
+    {
+      map $conf{$_}{"_$k"} = 1, @v;
+    }
+    elsif ($k eq "mapping")
+    {
+      $if = undef;
+    }
+    elsif ($k eq "iface")
+    {
+      $if = shift @v;
+      ($conf{$if}{_family}, $conf{$if}{_method}) = @v;
+    }
+    elsif ($if)
+    {
+      $conf{$if}{$k} = "@v";
+    }
+  }
+  \%conf;
+}
+
+{
+  my $done;
+  sub ifs_backup()
+  {
+    return if $done;
+    IServ::IConf::backup $cfg;
+    $done = 1;
+  }
+}
+
+sub ifs_write(%)
+{
+  my %new = @_;
+  my @in = getfile $cfg;
+  my $orig = join "", @in;
+  my $mode = "";
+  my $out = "";
+  for (@in)
+  {
+    my $line = $_;
+    $line =~ s/^\s+|\s$//g;
+    my @v = split /\s+/, $line;
+    my $k = @v? shift @v: "";
+    if ($k eq "auto" or $k =~ /^allow-/)
+    {
+      @v = subtract @v, grep { not defined $new{$_} } keys %new;
+      next unless @v;
+      $_ = "$k @v\n";
+    }
+    elsif ($k eq "mapping")
+    {
+      $mode = "";
+    }
+    elsif ($k eq "iface")
+    {
+      my $if = shift @v;
+      if (not exists $new{$if})
+      {
+        $mode = "";
+      }
+      elsif (defined $new{$if})
+      {
+	$mode = "subst";
+	$_ = delete $new{$if};
+      }
+      else
+      {
+	$mode = "del";
+	next;
+      }
+    }
+    else
+    {
+      next if $mode eq "del" or $mode eq "subst" and length $k;
+    }
+    $out .= $_;
+  }
+
+  for (grep $new{$_}, keys %new)
+  {
+    $out =~ s/\s*$/\n\nauto $_\n$new{$_}\n/s;
+  }
+
+  if ($out ne $orig)
+  {
+    ifs_backup;
+    putfile $cfg, $out;
+  }
+}
+
+sub if_deps($%)
+{
+  my ($if, %conf) = @_;
+  sort grep /^$if(?!>\w)/, keys %conf;
+}
+
+sub iwlist_scan($)
+{
+  my ($if) = @_;
+  # firmware seems to be loaded on first if up
+  unless (grep /^$if\s/, getproc "ifconfig")
+  {
+    system "ifconfig", $if, "0.0.0.0";
+  }
+  my (%res, $ssid);
+  for (getproc "iwlist", $if, "scan")
+  {
+    s/^\s+// or next;
+    s/\s+$//;
+    $ssid = undef if s/^Cell \d+ - //;
+    $ssid = $1 if /^ESSID:"(.*)"$/;
+    push @{$res{$ssid}}, "$1%" if /^Signal level=(.*)\/100/;
+  }
+  %res;
+}
+
+sub system_v(@)
+{
+  print "@_\n";
+  system @_;
+}
+
+sub menu_method(;$)
+{
+  my ($sel) = @_;
+  menu "Method", $sel, "static" => "statisch", "auto" => "Automatisch",
+    "dhcp" => "DHCP", "widedhcp" => "DHCP mit Präfix", "delg" => "Präfix-Deligierung";
+}
+
+my %conf = %{( ifs_parse )};
+
+if (-f $fn_dhcp)
+{
+  %dhcp_interfaces = map { $_ => 1 } split /\n/, join "", read_file $fn_dhcp;
+}
+
+if (-f $fn_delegation)
+{
+  %delegation_interfaces = map { $_ => 1 } split /\n/, join "", read_file $fn_delegation;
+}
+
+my $sel;
+my %changes;
+while (1)
+{
+  for my $if (keys %conf)
+  {
+    if (defined $dhcp_interfaces{$if}
+          and $conf{$if}{_family} eq "inet6"
+          and $conf{$if}{_method} eq "manual")
+    {
+      $conf{$if}{_method} = "widedhcp";
+    }
+  
+    if (defined $delegation_interfaces{$if}
+          and $conf{$if}{_family} eq "inet6"
+          and $conf{$if}{_method} eq "manual")
+    {
+      $conf{$if}{_method} = "delg";
+    }
+  }
+
+  my @ifs = sort
+    grep { $conf{$_}{_family} eq "inet6"
+      and $conf{$_}{_method} =~ /^static$|^dhcp|^manual|^auto|^delg|^widedhcp$/ }
+    keys %conf;
+
+  my @menu;
+  push @menu, $_ => $conf{$_}{address} // $conf{$_}{_method} for @ifs;
+  push @menu, "-" => "-";
+  push @menu, "add" => "Hinzufügen";
+  push @menu, "remove" => "Entfernen" if @ifs;
+  %changes?
+    push @menu, "save" => "Speichern und beenden":
+    push @menu, "exit" => "Beenden";
+  $sel = menu "Interfaces", $sel, @menu;
+
+  if (!$sel or $sel eq "exit")
+  {
+    last;
+  }
+  elsif ($sel eq "save")
+  {
+    # nicht abbrechen bei Abbruch der SSH-Verbindung
+    $SIG{HUP} = 'IGNORE';
+    
+    my @down = reverse sort keys %changes;
+    system_v "ifdown", "--force", $_ for @down;
+    
+    # ifdown deaktiviert das Interface nur, löscht aber nicht die Einstellungen
+    system_v "ifconfig", $_, "0.0.0.0", "down" for grep /^\w+$/, @down;
+    
+    print "write $cfg\n";
+    ifs_write %changes;
+    
+    print "write $fn_dhcp\n";
+    write_file $fn_dhcp, join "\n", keys %dhcp_interfaces;
+    print "write $fn_delegation\n";
+    write_file $fn_delegation, join "\n", keys %delegation_interfaces;
+   
+    if (!keys %dhcp_interfaces)
+    {
+      # stop wide if no dhcp interfaces are configured
+      system_v "iservchk", "wide";
+    }
+
+    my @up = grep defined $changes{$_}, sort keys %changes;
+    system_v "ifup", "--force", $_ for @up;
+ 
+    system_v "iservchk", "wide", "radvd", "dhcpd6", "bind", "apache", "defaults";
+    last;
+  }
+  elsif ($sel eq "remove")
+  {
+    if (my @rem = checklist "Entfernen", map {($_, $conf{$_}{address}, 0)} @ifs)
+    {
+      @rem = unique map { if_deps $_, %conf } @rem;
+      if (confirm join "\n", "Remove the following interfaces?", @rem)
+      {
+        $changes{$_} = undef for @rem;
+	delete $conf{$_} for @rem;
+	next;
+      }
+    }
+  }
+  elsif ($sel ne "-")
+  {
+    my ($if, $changes, %def);
+    tie %def, "Tie::IxHash";
+    if ($sel eq "add")
+    {
+      my @menu;
+      push @menu, $_, if_hardware $_ || "Netzwerkkarte"
+	for grep !$conf{$_}, map { basename $_ }
+          glob "/sys/class/net/{eth,wlan}*";
+      for (grep /^eth/, sort keys %conf)
+      {
+        my $if = /(\w+):(\d+)/? $1.":".($2 + 1): "$_:0";
+	next if $conf{$if};
+      }
+      push @menu, "custom", "Benutzerdefiniert";
+      $if = menu "Interface", undef, @menu;
+      next unless defined $if;
+
+      if ($if eq "custom")
+      {
+	$if = inputbox "Interface" or next;
+	if (exists $conf{$if})
+	{
+	  msgbox "Interface $if already exists!";
+	  next;
+	}
+      }
+
+      my $method = menu_method;
+      next unless defined $method;
+
+      $def{_family} = "inet6";
+      $def{_method} = $method;
+      $changes++;
+    }
+    else
+    {
+      $if = $sel;
+      $def{$_} = $conf{$if}{$_} for keys %{$conf{$if}};
+    }
+
+    my %stat;
+    tie %stat, "Tie::IxHash";
+    $stat{hardware} = if_hardware $if;
+    $stat{mac} = if_mac $if;
+
+    my $attr;
+    while (1)
+    {
+      my %mask;
+      tie %mask, "Tie::IxHash";
+      if ($def{_method} eq "static")
+      {
+	$mask{"address"} = qr/^$mask_ip$/;
+	$mask{"gateway"} = qr/^$mask_ip?$/;
+	$mask{"dns-nameservers"} = qr/^$mask_ips?$/;
+      }
+      if ($if =~ /^wlan/)
+      {
+	$mask{"wpa-ssid"} = qr/.+/;
+	$mask{"wpa-psk"} = qr/.+/;
+      }
+
+      $stat{status} = if_status $if;
+
+      my @menu;
+      push @menu, $_ => $stat{$_} for grep defined $stat{$_}, keys %stat;
+      push @menu, "-" => "-" if @menu;
+      push @menu, "method" => $def{_method};
+      # output default fields in order
+      push @menu, $_ => $def{$_} for keys %mask;
+      # output other fields sorted
+      push @menu, $_ => $def{$_} for grep !/^_/ && !$mask{$_}, sort keys %def;
+      push @menu, "-" => "-";
+      push @menu, "add" => "Benutzerdefiniertes Attribut";
+      $changes?
+	push @menu, "save" => "Speichern und zurück":
+	push @menu, "exit" => "Zurück";
+      $attr = menu "Interface $if", $attr, @menu;
+
+      if (!$attr or $attr eq "exit")
+      {
+        last;
+      }
+      elsif ($attr eq "save")
+      {
+	# check values
+	if (my @inv = grep $def{$_} !~ $mask{$_}, sort keys %mask)
+	{
+	  msgbox "Ungültig: @inv";
+	  next;
+	}
+	if (defined $def{address})
+	{
+	  if (defined $def{gateway})
+	  {
+	    if ($def{gateway} eq $def{address})
+	    {
+	      msgbox "Gateway darf nicht der Server selbst sein.";
+	      next;
+	    }
+	  }
+	  if (defined $def{"dns-nameservers"})
+	  {
+	    if ($def{"dns-nameservers"} eq $def{address})
+	    {
+	      msgbox "Nameserver darf nicht der Server selbst sein.";
+	      next;
+	    }
+	  }
+	}
+	# store values
+	$conf{$if} = \%def;
+	
+        # handle automagically methods (widedhcp and delg)
+	if ($conf{$if}{_method} eq "widedhcp")
+	{
+	  $dhcp_interfaces{$if} = 1;
+	  $conf{$if}{_method} = "manual";
+	}
+	else
+	{
+	  delete $dhcp_interfaces{$if};
+	}
+	
+	if ($conf{$if}{_method} eq "delg")
+        {
+          $delegation_interfaces{$if} = 1;
+          $conf{$if}{_method} = "manual";
+        }
+        else
+        {
+          delete $delegation_interfaces{$if};
+        }
+
+	$changes{$if} = "iface $if $def{_family} $def{_method}\n".
+	  (join "", map "\t$_ $def{$_}\n", grep !/^_/, keys %def);
+	last;
+      }
+      elsif ($attr eq "status")
+      {
+        my %stat;
+	tie %stat, "Tie::IxHash";
+	%stat = if_status $if;
+	next unless %stat;
+	my $sel;
+	while (1)
+	{
+	  $sel = menu "Status of $if", $sel, %stat, "-", "-", "exit", "Beenden";
+	  if (!$sel or $sel eq "exit")
+	  {
+	    last;
+	  }
+	  elsif (defined $stat{$sel} and length $stat{$sel} > 48)
+	  {
+	    msgbox "$sel: $stat{$sel}";
+	  }
+	}
+      }
+      elsif ($attr eq "method")
+      {
+	my $method = menu_method $def{"_method"};
+	next unless defined $method;
+	$def{"_method"} = $method;
+	if ($method eq "dhcp")
+	{
+	  delete $def{$_} for qw(address gateway dns-nameservers);
+	}
+	$changes++;
+      }
+      elsif ($attr eq "wpa-ssid")
+      {
+	my @menu;
+	my %arr = iwlist_scan $if;
+	push @menu, map { ($_, sprintf "Signal %s", join " + ", @{$arr{$_}}) }
+	  sort { lc $a cmp lc $b } keys %arr;
+	push @menu, "custom" => "Benutzerdefiniert";
+	my $wpa_ssid = menu "Method", $def{"wpa-ssid"}, @menu;
+	next unless defined $wpa_ssid;
+	if ($wpa_ssid eq "custom")
+	{
+	  $wpa_ssid = inputbox "SSID" or next;
+	}
+	$def{"wpa-ssid"} = $wpa_ssid;
+	$changes++;
+      }
+      elsif ($attr eq "add" or exists $def{$attr} or $mask{$attr})
+      {
+	if ($attr eq "add")
+	{
+	  $attr = inputbox "Attribut";
+	  next unless defined $attr;
+	}
+	my $v = inputbox $attr, $def{$attr}, $mask{$attr};
+	next unless defined $v;
+	length $v? $def{$attr} = $v: delete $def{$attr};
+	$changes++;
+	if (defined $v and $v)
+	{
+	  $def{"dns-nameservers"} = $v
+	    if $attr eq "gateway" and not defined $def{"dns-nameservers"};
+	}
+      }
+      elsif (defined $stat{$attr} and length $stat{$attr} > 48)
+      {
+        msgbox $stat{$attr};
+      }
+    }
+  }
+}
+

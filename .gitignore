@@ -1,0 +1,6 @@
+debian/stsbl-iserv-config-ipv6/*
+debian/stsbl-iserv-config-ipv6.substvars
+debian/stsbl-iserv-config-ipv6.debhelper.log
+debian/files
+debian/debhelper-build-stamp
+debian/*.debhelper

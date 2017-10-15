@@ -1,0 +1,200 @@
+#!/usr/bin/perl -CSDAL
+
+use warnings;
+use strict;
+use Getopt::Long;
+use Net::IP;
+use Regexp::IPv6;
+
+my $fn_cfg = "/var/lib/iserv/config/config.pm";
+my %LANInterfaces;
+my $conf;
+
+if (-f $fn_cfg)
+{
+  require $fn_cfg;
+  %LANInterfaces = map { $_ => 1 } @{ $conf->{LANInterfaces} };
+}
+
+my $m_if = qr/[\w.-]+/;
+my $m_hex = qr/[0-9a-f]{2}/;
+my $m_mac = qr/$m_hex(?::$m_hex){5}/;
+my $m_scope = qr/global|link|host/;
+my $m_ip6 = qr/$Regexp::IPv6::IPv6_re/;
+my $m_ip4 = qr/\d{1,3}(?:\.\d{1,3}){3}/;
+
+my @out;
+my %opt;
+
+$opt{global} = 0;
+$opt{linklocal} = 0;
+$opt{format} = "ip/length";
+
+GetOptions(\%opt,
+  "format|f=s",
+  "help|h",
+  "global|g",
+  "lan|l",
+  "linklocal|p",
+  "quiet|q"
+) or $opt{help} = 1;
+
+print STDERR "You shall not combine global and linklocal!\n" and exit 1
+  if $opt{global} and $opt{linklocal};
+
+exit 1 
+  if ($opt{lan} and not keys %LANInterfaces);
+
+print <<USAGE and exit if $opt{help};
+Usage: netquery6 [options]
+Options
+ -h, --help             show this help
+ -f=<format>, 
+ --format=<format>      format to print (available keywords:
+                          ip, prefix, length, scope, mac, nic,
+		          valid, preferred) - default: ip/length
+ -g, --global           only print global addresses
+ -l, --lan              only print addresses of interfaces which
+                        are marked as lan
+ -p, --linklocal        only print link-local addresses
+ -q, --quiet            do not output something
+USAGE
+
+sub parse(@)
+{
+  my $line = shift;
+
+  while (defined $line)
+  {
+    if ($line =~ /^\d+: ($m_if)(\@$m_if)?:/)
+    {
+      my $nic = $1;
+      
+      $line = shift;
+      return if !defined $line;
+ 
+      if ($line =~ /^ {4}(link\/ether ($m_mac) brd $m_mac( |$)|link\/sit ($m_ip4) peer ($m_ip4))/)
+      {
+	my $mac = $1 if $1;
+	$mac //= "";
+
+	$line = shift;
+	return if !defined $line;
+
+	while ($line =~ /^ {4}/)
+	{
+	  if ($line =~ /^ {4}inet\s/)
+	  {
+            # noop
+	    $line = shift;
+	    return if !defined $line;
+
+	    $line = shift if $line =~ /\ {7}valid_lft /; # kernel > 3.2
+	    return if !defined $line;
+	  }
+	  elsif (my ($ip) = $line =~ /^ {4}inet6 ($m_ip6)\//)
+	  {
+	    my (undef, $attributes) = split /\//, $line;
+	    my ($length, $scope) = $attributes =~ /(\d+)\sscope\s($m_scope)/;
+
+	    $ip = Net::IP::ip_expand_address($ip, 6);
+
+	    my $prefix;
+	    if ($ip =~ /$m_ip6/)
+	    {
+	      my @parts = split /:/, $ip;
+              $prefix = join(":", @parts[0..3])."::";
+            }
+
+	    my %row;
+            $row{ip} = $ip;
+	    $row{prefix} = $prefix;
+	    $row{length} = $length;
+	    $row{scope} = $scope;
+	    $row{mac} = $mac;
+            $row{nic} = $nic;
+	    $row{linklocal} = ($ip =~ /^fe80/) ? 1 : 0;
+
+	    $line = shift;
+	    if (defined $line and $line =~ /^\ {7}valid_lft /)
+	    {
+              my ($valid, $preferred) = $line =~ /^\ {7}valid_lft (?:(\d+)sec) preferred_lft (?:(\d+)sec)/;
+              $row{valid} = time + $valid if defined $valid;
+	      $row{valid} //= "forever";
+	      $row{preferred} = time + $preferred if defined $preferred;
+	      $row{preferred} //= "forever";
+	      $line = shift;
+	    }
+
+	    push @out, \%row;
+	    return if !defined $line;
+	  }
+	  else
+	  {
+	    warn "parse error, unknown address family: $line\n";
+	    $line = shift;
+	    return if !defined $line
+	  }
+	}
+      }
+      elsif ($line =~ /^ {4}link\/(loopback|ppp|none|sit) /)
+      {
+        # loopback -> ignore because lo is often handled specially
+        # ppp* -> ignore because dynamic
+        # sit -> ignore because it only contains information about
+	#  tunnel endpoints, used information are parsed above
+	# tun* is shown as link/none -> ignore because dynamic
+	do { $line = shift; return if !defined $line; } while $line =~ /^ {4}/;
+      }
+      else
+      {
+         warn "parse error, unknown link: $line\n";
+         $line = shift;
+	 return if !defined $line
+      }
+    }
+    else {
+      warn "parse error, unknown interface: $line\n";
+      $line = shift;
+      return if !defined $line
+    }
+  }
+}
+
+parse split /\n/, qx(/sbin/ip address show up);
+
+my $out = 0;
+for my $ip (@out)
+{
+  my $output = "$opt{format}\n";
+  my $global = 0;
+  my $linklocal = 0;
+
+  $ip->{linklocal} ? $linklocal = 1 : $global = 1;
+  delete $ip->{linklocal};
+
+  if ($opt{lan} and !defined $LANInterfaces{$ip->{nic}})
+  {
+    next;
+  }
+
+  for my $field (sort keys %{ $ip })
+  {
+    $output =~ s/$field/$ip->{$field}/g;
+  }
+
+  if ($global and $opt{linklocal})
+  {
+    next;
+  }
+
+  if ($linklocal and $opt{global})
+  {
+    next;
+  }
+
+  print $output if !$opt{quiet};
+  $out++;
+}
+
+exit 1 if !$out;

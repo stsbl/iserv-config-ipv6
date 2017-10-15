@@ -1,0 +1,8 @@
+LANInterfaces:
+name            LAN interfaces
+description     The network interfaces of the server which are connected to the LAN. This setting will used to configure the IPv6 firewall properly.
+group           Network
+type            array
+default         ()
+readonly        true
+

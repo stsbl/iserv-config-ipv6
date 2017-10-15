@@ -1,0 +1,22 @@
+Source: stsbl-iserv-config-ipv6
+Section: misc
+Priority: extra
+Maintainer: Stadtteilschule Blankenese <repository@stsbl.de>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.8
+Homepage: https://it.stsbl.de
+
+Package: stsbl-iserv-config-ipv6
+Architecture: all
+Depends:
+  ${misc:Depends},
+  ${perl:Depends},
+  iserv-update,
+  iserv-config,
+  libnet-ip-perl,
+  libregexp-ipv6-perl,
+  wide-dhcpv6-client,
+Description: IServ Config - IPv6-Unterstützung
+ Enthält die Konfigurationsoberfläche, mit der die IPv6-Anbindung des Servers
+ konfiguriert wird.
+Tag: suite::iserv
