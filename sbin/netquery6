@@ -6,13 +6,18 @@ use Getopt::Long;
 use Net::IP;
 use Regexp::IPv6;
 
-my $fn_cfg = "/var/lib/iserv/config/config.pm";
+my $fn_iserv_cfg = "/var/lib/iserv/config/config.pm";
 my %LANInterfaces;
+
 my $conf;
 
-if (-f $fn_cfg)
+if (-r $fn_iserv_cfg)
 {
-  require $fn_cfg;
+  $conf = (require $fn_iserv_cfg);
+}
+
+if (defined $conf->{LANInterfaces})
+{
   %LANInterfaces = map { $_ => 1 } @{ $conf->{LANInterfaces} };
 }
 
