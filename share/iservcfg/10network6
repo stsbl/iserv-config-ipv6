@@ -12,7 +12,7 @@ use IServ::IConf;
 use IServ::Dialog qw(msgbox confirm inputbox menu checklist);
 use Regexp::IPv6;
 
-my $mask_ip = qr/($Regexp::IPv6::IPv6_re)/;
+my $mask_ip = qr/($Regexp::IPv6::IPv6_re(?:\/(\d+)))/;
 my $mask_ips = qr/$mask_ip(?: $mask_ip)*/;
 
 my $TITLE = "Netzwerkschnittstellen (IPv6)";
