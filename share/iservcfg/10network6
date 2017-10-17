@@ -353,7 +353,19 @@ while (1)
     my @up = grep defined $changes{$_}, sort keys %changes;
     system_v "ifup", "--force", $_ for @up;
  
-    system_v "iservchk", "wide", "radvd", "dhcpd6", "bind", "apache", "defaults";
+    my @services;
+    push @services, "wide";
+
+    my $want = {"apache" => "40apache", "bind" => "12bind", "dhcpd6" => "40dhcpd6",
+      "defaults" => "90defaults", "network" => "11network", "radvd" => "40radvd", "squid" => "40squid"};
+
+    for my $service (keys %$want)
+    {
+      next if not -f "/etc/iserv/chk.d/".$want->{$service};
+      push @services, $service;
+    }
+
+    system_v "iservchk", sort @services;
     last;
   }
   elsif ($sel eq "remove")
