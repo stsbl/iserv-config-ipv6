@@ -97,19 +97,14 @@ sub parse(@)
 	    $line = shift if $line =~ /\ {7}valid_lft /; # kernel > 3.2
 	    return if !defined $line;
 	  }
-	  elsif (my ($ip) = $line =~ /^ {4}inet6 ($m_ip6)\//)
+	  elsif (my ($ip, $length, $scope) = $line =~ /^ {4}inet6 ($m_ip6)\/(\d+)\sscope\s($m_scope)/)
 	  {
-	    my (undef, $attributes) = split /\//, $line;
-	    my ($length, $scope) = $attributes =~ /(\d+)\sscope\s($m_scope)/;
-
 	    $ip = Net::IP::ip_expand_address($ip, 6);
 
-	    my $prefix;
-	    if ($ip =~ /$m_ip6/)
-	    {
-	      my @parts = split /:/, $ip;
-              $prefix = join(":", @parts[0..3])."::";
-            }
+	    my $raw = unpack("B*", pack("H*", join "", split/:/, $ip));
+	    my $id_length = 128 - $length;
+            my $raw_prefix = substr($raw, 0, -$id_length);
+	    my $prefix = join(":", unpack("(A4)*", unpack("H*", pack("B*", $raw_prefix))))."::";
 
 	    my %row;
             $row{ip} = $ip;
