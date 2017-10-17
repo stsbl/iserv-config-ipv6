@@ -1,3 +1,11 @@
+stsbl-iserv-config-ipv6 (17.10.18-0) experimental; urgency=medium
+
+  * Added optional support for prefix length in configuration.
+  * netquery6: Calculate real prefix.
+  * iservcfg network6: Only call iservchk services which are installed.
+
+ -- Felix Jacobi <felix.jacobi@iserv.eu>  Wed, 18 Oct 2017 00:46:41 +0200
+
 stsbl-iserv-config-ipv6 (17.10.16-0) experimental; urgency=medium
 
   * Fixed iconf template of wide-dhcpv6-client default settings and added creation of list files.
