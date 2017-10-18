@@ -1,0 +1,25 @@
+#!/bin/bash -e
+
+DEFIF="$(LC_ALL=C ip -6 route show default | awk '$1=="default" {print $5}' | 
+  sed 's/^ppp[0-9]\+/ppp+/')"
+
+IPs="$(netquery6 --global --format "nic ip" | grep $DEFIF | awk '{ print $2 }' | sort -r | while read i
+do
+  perl -e 'use Net::IP; print Net::IP::ip_expand_address "'$i'", 6;'
+  echo
+done)"
+  
+CURIPs="$(dig +short $(hostname) AAAA @ns.iserv.eu | sort | while read i
+do
+  perl -e 'use Net::IP; print Net::IP::ip_expand_address "'$i'", 6;'
+  echo
+done)"
+
+if ! [ -z "$IPs" ] && ! [ "$IPs" = "$CURIPs" ]
+then
+  ssh $(hostname -d) regdns -d \'$(hostname). AAAA\'
+  for i in ${IPs[@]}
+  do
+    ssh $(hostname -d) regdns -a \'$(hostname). 300 AAAA $i\'
+  done
+fi
