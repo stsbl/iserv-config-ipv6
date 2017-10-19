@@ -16,6 +16,7 @@ Depends:
   libnet-ip-perl,
   libregexp-ipv6-perl,
   wide-dhcpv6-client,
+  dnsutils
 Description: IServ Config - IPv6-Unterstützung
  Enthält die Konfigurationsoberfläche, mit der die IPv6-Anbindung des Servers
  konfiguriert wird.
