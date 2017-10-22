@@ -1,6 +1,8 @@
 #!/bin/bash
 
+echo "Touch /var/lib/dhcp/dhcpd6.leases"
 echo "Check /etc/default/wide-dhcpv6-client"
+echo
 
 if [ -s /var/lib/iserv/config/ipv6-dhcp-interfaces.list ]
 then
