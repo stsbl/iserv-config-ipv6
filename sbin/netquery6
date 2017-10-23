@@ -41,14 +41,26 @@ GetOptions(\%opt,
   "global|g",
   "lan|l",
   "linklocal|p",
+  "uniquelocal|u",
   "quiet|q"
 ) or $opt{help} = 1;
 
-print STDERR "You shall not combine global and linklocal!\n" and exit 1
-  if $opt{global} and $opt{linklocal};
+my $count = 0;
+for my $type (("global", "linklocal", "uniquelocal"))
+{
+  $count++ if $opt{$type};
+}
+
+# display all by default
+if ($count < 1)
+{
+  $opt{global} = 1;
+  $opt{linklocal} = 1;
+  $opt{uniquelocal} = 1;
+}
 
 exit 1 
-  if ($opt{lan} and not keys %LANInterfaces);
+  if $opt{lan} and not keys %LANInterfaces;
 
 print <<USAGE and exit if $opt{help};
 Usage: netquery6 [options]
@@ -62,8 +74,19 @@ Options
  -l, --lan              only print addresses of interfaces which
                         are marked as lan
  -p, --linklocal        only print link-local addresses
+ -u, --uniquelocal      only print unique-local addresses
  -q, --quiet            do not output something
 USAGE
+
+sub ip_in_net($$)
+{
+  my ($net, $ip) = @_;
+
+  $net = new Net::IP($net);
+  $ip = new Net::IP($ip);
+
+  $net->overlaps($ip, $net) eq $Net::IP::IP_B_IN_A_OVERLAP;
+}
 
 sub parse(@)
 {
@@ -113,7 +136,8 @@ sub parse(@)
 	    $row{scope} = $scope;
 	    $row{mac} = $mac;
             $row{nic} = $nic;
-	    $row{linklocal} = ($ip =~ /^fe80/) ? 1 : 0;
+	    $row{linklocal} = ip_in_net "fe80::/10", "$ip/128";
+            $row{uniquelocal} = ip_in_net "fc00::/7", "$ip/128";
 
 	    $line = shift;
 	    if (defined $line and $line =~ /^\ {7}valid_lft /)
@@ -169,9 +193,15 @@ for my $ip (@out)
   my $output = "$opt{format}\n";
   my $global = 0;
   my $linklocal = 0;
+  my $uniquelocal = 0;
 
-  $ip->{linklocal} ? $linklocal = 1 : $global = 1;
+  $ip->{linklocal} and $linklocal = 1;
   delete $ip->{linklocal};
+  $ip->{uniquelocal} and $uniquelocal = 1;
+  delete $ip->{uniquelocal};
+
+  # default to global scope as wanted by rfc
+  $global = 1 if !$linklocal and !$uniquelocal;
 
   if ($opt{lan} and !defined $LANInterfaces{$ip->{nic}})
   {
@@ -183,15 +213,9 @@ for my $ip (@out)
     $output =~ s/$field/$ip->{$field}/g;
   }
 
-  if ($global and $opt{linklocal})
-  {
-    next;
-  }
-
-  if ($linklocal and $opt{global})
-  {
-    next;
-  }
+  next if $global and !$opt{global};
+  next if $linklocal and !$opt{linklocal};
+  next if $uniquelocal and !$opt{uniquelocal};
 
   print $output if !$opt{quiet};
   $out++;
