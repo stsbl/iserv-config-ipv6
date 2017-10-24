@@ -19,7 +19,7 @@ Depends:
   dnsutils,
   rdnssd,
 Replaces:
-  stsbl-iserv-ipv6-support (<< 17.10.24-2),
+  stsbl-iserv-ipv6-support (<< 17.10.24-3),
 Description: IServ Config - IPv6-Unterstützung
  Enthält die Konfigurationsoberfläche, mit der die IPv6-Anbindung des Servers
  konfiguriert wird.
