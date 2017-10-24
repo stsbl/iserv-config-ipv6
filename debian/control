@@ -16,7 +16,8 @@ Depends:
   libnet-ip-perl,
   libregexp-ipv6-perl,
   wide-dhcpv6-client,
-  dnsutils
+  dnsutils,
+  rdnssd,
 Replaces:
   stsbl-iserv-ipv6-support (<< 17.10.24-2),
 Description: IServ Config - IPv6-Unterstützung
