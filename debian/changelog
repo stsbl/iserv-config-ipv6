@@ -1,3 +1,12 @@
+stsbl-iserv-config-ipv6 (17.10.24-4) experimental; urgency=medium
+
+  * Added rdnssd for configuration of ipv6 dns.
+  * Moved post-up network script from ipv6-support.
+  * Updated iconf template names to match module name.
+  * Updated dependencies.
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Tue, 24 Oct 2017 22:37:57 +0200
+
 stsbl-iserv-config-ipv6 (17.10.24-3) experimental; urgency=medium
 
   * Moved touch of leases file to ipv6-support
