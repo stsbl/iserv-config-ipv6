@@ -7,3 +7,8 @@ Insert "/etc/network/interfaces"
 
 Touch /var/lib/iserv/config/ipv6-{dhcp,delegation}-interfaces.list
 
+Test "init ipv6 prefix configuration"
+  [ -f "/etc/iserv/dhcpv6-prefix" ]
+  ---
+  echo 62 > /etc/iserv/dhcpv6-prefix
+
