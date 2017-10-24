@@ -17,6 +17,8 @@ Depends:
   libregexp-ipv6-perl,
   wide-dhcpv6-client,
   dnsutils
+Replaces:
+  stsbl-iserv-ipv6-support (<< 17.10.24-2),
 Description: IServ Config - IPv6-Unterstützung
  Enthält die Konfigurationsoberfläche, mit der die IPv6-Anbindung des Servers
  konfiguriert wird.
