@@ -1,3 +1,13 @@
+stsbl-iserv-config-ipv6 (17.10.24-1) experimental; urgency=medium
+
+  * Added required dependency on dnsutils.
+  * Improved wide-dhcpv6 config
+  * Create leases file for dhcpd6.
+  * netquery6: Improved support for link-local address detection and added support for unique local addresses.
+  * Added configuration of delegated prefix length.
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Tue, 24 Oct 2017 12:04:32 +0200
+
 stsbl-iserv-config-ipv6 (17.10.19-1) experimental; urgency=medium
 
   * Added ipv6dnsupd script.
