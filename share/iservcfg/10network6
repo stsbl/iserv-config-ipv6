@@ -12,9 +12,9 @@ use IServ::IConf;
 use IServ::Dialog qw(msgbox confirm inputbox menu checklist);
 use Regexp::IPv6;
 
-my $mask_ip = qr/($Regexp::IPv6::IPv6_re(?:\/(\d+)))/;
+my $mask_ip = qr/($Regexp::IPv6::IPv6_re(|\/(\d+)))/;
 my $mask_ips = qr/$mask_ip(?: $mask_ip)*/;
-
+my $mask_netmask = qr/(([1]([0-1][0-9]|[2][0-8]))|[1-9][0-9]|[0-9])/;
 my $TITLE = "Netzwerkschnittstellen (IPv6)";
 my $cfg = "/etc/network/interfaces.d/ipv6";
 my $fn_delegation = "/var/lib/iserv/config/ipv6-delegation-interfaces.list";
@@ -390,8 +390,8 @@ while (1)
       my @menu;
       push @menu, $_, if_hardware $_ || "Netzwerkkarte"
 	for grep !$conf{$_}, map { basename $_ }
-          glob "/sys/class/net/{eth,wlan}*";
-      for (grep /^eth/, sort keys %conf)
+          glob "/sys/class/net/{eth,wlan,en,wl,ww}*";
+      for (grep /^(eth|en)/, sort keys %conf)
       {
         my $if = /(\w+):(\d+)/? $1.":".($2 + 1): "$_:0";
 	next if $conf{$if};
@@ -438,8 +438,9 @@ while (1)
 	$mask{"address"} = qr/^$mask_ip$/;
 	$mask{"gateway"} = qr/^$mask_ip?$/;
 	$mask{"dns-nameservers"} = qr/^$mask_ips?$/;
+	$mask{"netmask"} = qr/^$mask_netmask?$/;
       }
-      if ($if =~ /^wlan/)
+      if ($if =~ /^(wlan|wl)/)
       {
 	$mask{"wpa-ssid"} = qr/.+/;
 	$mask{"wpa-psk"} = qr/.+/;
@@ -548,7 +549,7 @@ while (1)
 	$def{"_method"} = $method;
 	if ($method eq "dhcp")
 	{
-	  delete $def{$_} for qw(address gateway dns-nameservers);
+	  delete $def{$_} for qw(address gateway dns-nameservers netmask);
 	}
 	$changes++;
       }
