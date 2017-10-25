@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (17.10.25-1) experimental; urgency=medium
+
+  * iservcfg network6: Added support for predictable network interfaces and netmask
+  * netquery6: Added support for explicit query of wan ip addresses
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Wed, 25 Oct 2017 23:36:43 +0200
+
 stsbl-iserv-config-ipv6 (17.10.24-4) experimental; urgency=medium
 
   * Added rdnssd for configuration of ipv6 dns.
