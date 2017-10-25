@@ -42,7 +42,8 @@ GetOptions(\%opt,
   "lan|l",
   "linklocal|p",
   "uniquelocal|u",
-  "quiet|q"
+  "quiet|q",
+  "wan|w"
 ) or $opt{help} = 1;
 
 my $count = 0;
@@ -58,6 +59,8 @@ if ($count < 1)
   $opt{linklocal} = 1;
   $opt{uniquelocal} = 1;
 }
+
+die "You shall not combine --wan and --lan!\n" if $opt{lan} and $opt{wan};
 
 exit 1 
   if $opt{lan} and not keys %LANInterfaces;
@@ -76,6 +79,8 @@ Options
  -p, --linklocal        only print link-local addresses
  -u, --uniquelocal      only print unique-local addresses
  -q, --quiet            do not output something
+ -w, --wan              only print addresses of interfaces which
+                        are not marked as lan
 USAGE
 
 sub ip_in_net($$)
@@ -204,6 +209,11 @@ for my $ip (@out)
   $global = 1 if !$linklocal and !$uniquelocal;
 
   if ($opt{lan} and !defined $LANInterfaces{$ip->{nic}})
+  {
+    next;
+  }
+
+  if ($opt{wan} and defined $LANInterfaces{$ip->{nic}})
   {
     next;
   }
