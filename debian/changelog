@@ -1,6 +1,13 @@
+stsbl-iserv-config-ipv6 (17.10.26-1) experimental; urgency=medium
+
+  * Restart wide if relevant network interfaces are going up/down
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Thu, 26 Oct 2017 04:43:29 +0200
+
 stsbl-iserv-config-ipv6 (17.10.25-1) experimental; urgency=medium
 
-  * iservcfg network6: Added support for predictable network interfaces and netmask
+  * iservcfg network6: Added support for predictable network interfaces and
+    netmask
   * netquery6: Added support for explicit query of wan ip addresses
 
  -- Felix Jacobi <felix.jacobi@stsbl.de>  Wed, 25 Oct 2017 23:36:43 +0200
