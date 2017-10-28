@@ -1,4 +1,4 @@
-# accept route announcements for other subnets
+# Accept route announcements for other subnets
 $(for nic in $(netquery6 --format nic | uniq)
 do
   echo "net.ipv6.conf.$nic.accept_ra_rt_info_max_plen = 128"

@@ -1,0 +1,12 @@
+# Prefer tempaddr for wan interfaces
+$(for nic in $(netquery6 --global --wan --format nic)
+do
+  echo "net.ipv6.conf.$nic.use_tempaddr = 2"
+done)
+
+# Kill tempaddr for lan interfaces
+$(for nic in $(netquery6 --global --lan --format nic)
+do
+  echo "net.ipv6.conf.$nic.use_tempaddr = 0"
+done)
+
