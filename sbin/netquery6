@@ -127,6 +127,17 @@ sub parse(@)
 	  }
 	  elsif (my ($ip, $length, $scope) = $line =~ /^ {4}inet6 ($m_ip6)\/(\d+)\sscope\s($m_scope)/)
 	  {
+	    # ignore temporary ipv6 addresses (privay extensions)
+	    if ($line =~ /temporary/)
+	    {
+	      $line = shift;
+	      return if !defined $line;
+	      $line = shift
+		if (defined $line and $line =~ /^\ {7}valid_lft /);
+	      return if !defined $line;
+	      next;
+	    }
+
 	    $ip = Net::IP::ip_expand_address($ip, 6);
 
 	    my $raw = unpack("B*", pack("H*", join "", split/:/, $ip));
