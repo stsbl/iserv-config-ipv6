@@ -15,6 +15,7 @@ Depends:
   iserv-config,
   libnet-ip-perl,
   libregexp-ipv6-perl,
+  isc-dhcp-client,
   wide-dhcpv6-client,
   dnsutils,
   rdnssd,
