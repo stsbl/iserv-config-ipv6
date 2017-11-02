@@ -1,0 +1,5 @@
+#!/usr/bin/perl -p -CSDAL
+
+my $new_options = "dhcp6.name-servers, dhcp6.domain-search, dhcp6.fqdn, dhcp6.sntp-servers";
+
+s/request /request $new_options,\n	/g;
