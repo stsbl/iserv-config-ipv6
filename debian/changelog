@@ -1,3 +1,11 @@
+stsbl-iserv-config-ipv6 (17.11.02-1) experimental; urgency=medium
+
+  * netquery6: Ignore ipv6 addresses from privacy extensions
+  * Added config for isc-dhcp-client
+  * Added isc-dhcp-client dependency
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Thu, 02 Nov 2017 01:16:36 +0100
+
 stsbl-iserv-config-ipv6 (17.10.28-2) experimental; urgency=medium
 
   * Accept announcements for other subnets
