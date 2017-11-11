@@ -5,12 +5,15 @@ DEFIF="$(LC_ALL=C ip -6 route show default | awk '$1=="default" {print $5}' |
 
 IPs="$(netquery6 --global --format "nic ip" | grep $DEFIF | awk '{ print $2 }' | while read i
 do
+  [ -z "$i" ] && continue
   perl -e 'use Net::IP; print Net::IP::ip_expand_address "'$i'", 6;'
   echo
 done | sort)"
   
 CURIPs="$(dig +short $(hostname) AAAA @ns.iserv.eu | while read i
 do
+  [ -z "$i" ] && continue
+  [ "$i" = ";; connection timed out; no servers could be reached" ] && continue
   perl -e 'use Net::IP; print Net::IP::ip_expand_address "'$i'", 6;'
   echo
 done | sort)"
