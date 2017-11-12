@@ -2,6 +2,7 @@
 if [ $(grep -E "^$IFACE$" /var/lib/iserv/config/ipv6-delegation-interfaces.list) ] || \
    [ $(grep -E "^$IFACE$" /var/lib/iserv/config/ipv6-dhcp-interfaces.list) ]
 then
-  iservchk -a wide || true
-  /etc/init.d/wide-dhcpv6-client restart || true
+  /usr/lib/iserv/sleep_exec_once 30 ifup_wide sh -c "iservchk -a wide || true; \
+    /etc/init.d/wide-dhcpv6-client restart || true"
 fi
+
