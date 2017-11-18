@@ -1,4 +1,4 @@
-tsbl-iserv-config-ipv6 (17.11.18-1) experimental; urgency=medium
+stsbl-iserv-config-ipv6 (17.11.18-1) experimental; urgency=medium
 
   * Improved wide restart in if/-up down scripts to prevent multiple requests
   * Fixed iconf template name
