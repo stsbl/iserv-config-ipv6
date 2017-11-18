@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (17.11.18-2) experimental; urgency=medium
+
+  * Fixed changelog 
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Sat, 18 Nov 2017 03:22:56 +0100
+
 stsbl-iserv-config-ipv6 (17.11.18-1) experimental; urgency=medium
 
   * Improved wide restart in if/-up down scripts to prevent multiple requests
