@@ -1,15 +1,18 @@
-$([ ! -z "$(netquery6 --global --wan --format nic)" ] && echo "# Prefer tempaddr for wan interfaces")
-$(for nic in $(netquery6 --global --wan --format nic)
-do
-  echo "net.ipv6.conf.$nic.use_tempaddr = 2"
-done)
-
+$(
+  [ ! -f "/var/lib/dpkg/info/iserv-backup.list" ] &&
+  [ ! -z "$(netquery6 --global --wan --format nic)" ] &&
+  (echo "# Prefer tempaddr for wan interfaces" &&
+  for nic in $(netquery6 --global --wan --format nic)
+  do
+    echo "net.ipv6.conf.$nic.use_tempaddr = 2"
+  done
+  )
+)
 $([ ! -z "$(netquery6 --global --lan --format nic)" ] && echo "# Kill tempaddr for lan interfaces")
 $(for nic in $(netquery6 --global --lan --format nic)
 do
   echo "net.ipv6.conf.$nic.use_tempaddr = 0"
 done)
-
 $([ ! -z "$(netquery6 --global --wan --format nic)" ] &&
   [ -f "/var/lib/dpkg/info/iserv-backup.list" ] && 
   (echo "# Kill tempaddr as backupmon has problems with it"
@@ -19,3 +22,4 @@ $([ ! -z "$(netquery6 --global --wan --format nic)" ] &&
   done
   )
 )
+
