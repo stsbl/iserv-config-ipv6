@@ -11,14 +11,15 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${perl:Depends},
-  iserv-update,
+  dnsutils,
+  ipv6chdetectd,
+  isc-dhcp-client,
   iserv-config,
+  iserv-update,
   libnet-ip-perl,
   libregexp-ipv6-perl,
-  isc-dhcp-client,
-  wide-dhcpv6-client,
-  dnsutils,
   rdnssd,
+  wide-dhcpv6-client,
 Replaces:
   stsbl-iserv-ipv6-support (<< 17.10.24-3),
 Description: IServ Config - IPv6-Unterstützung
