@@ -2,9 +2,11 @@
 
 use warnings;
 use strict;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 use Net::IP;
 use Regexp::IPv6;
+
+Getopt::Long::Configure ("bundling");
 
 my $fn_iserv_cfg = "/var/lib/iserv/config/config.pm";
 my %LANInterfaces;
