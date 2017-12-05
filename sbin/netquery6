@@ -175,7 +175,7 @@ sub parse(@)
 	  {
 	    warn "parse error, unknown address family: $line\n";
 	    $line = shift;
-	    return if !defined $line
+	    return if !defined $line;
 	  }
 	}
       }
@@ -192,13 +192,13 @@ sub parse(@)
       {
          warn "parse error, unknown link: $line\n";
          $line = shift;
-	 return if !defined $line
+	 return if !defined $line;
       }
     }
     else {
       warn "parse error, unknown interface: $line\n";
       $line = shift;
-      return if !defined $line
+      return if !defined $line;
     }
   }
 }
