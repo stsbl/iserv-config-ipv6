@@ -1,3 +1,11 @@
+stsbl-iserv-config-ipv6 (17.12.05-1) experimental; urgency=medium
+
+  * netquery6: Enabled bundling for Getopt
+  * Added license
+  * ipv6dnsupd: Exit silently if not default interface given
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Tue, 05 Dec 2017 01:29:57 +0100
+
 stsbl-iserv-config-ipv6 (17.11.30-1) experimental; urgency=medium
 
   * ipv6chdetectd: added dependency
