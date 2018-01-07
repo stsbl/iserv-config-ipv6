@@ -1,3 +1,11 @@
+stsbl-iserv-config-ipv6 (18.01.08-1) experimental; urgency=medium
+
+  * Updated copyright
+  * Added lintian overrides
+  * Moved wide dhcp client iservchk to top to allow single iservchk run
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Mon, 08 Jan 2018 00:49:39 +0100
+
 stsbl-iserv-config-ipv6 (17.12.08-1) experimental; urgency=medium
 
   * netquery6: CS fixes
