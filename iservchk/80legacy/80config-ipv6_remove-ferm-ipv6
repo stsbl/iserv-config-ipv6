@@ -1,0 +1,40 @@
+Test "remove ferm6 service"
+  ! systemctl -q is-enabled ferm6.service &> /dev/null
+  ---
+  cp -a /lib/systemd/system/ferm.service /etc/systemd/system/ferm6.service
+  systemctl daemon-reload
+  systemctl stop ferm6.service
+  systemctl disable ferm6.service
+  rm /etc/systemd/system/ferm6.service
+  iservchk -a ferm
+
+Test "migrate local ipv6 firewall"
+  [ ! -d "/etc/ferm6.d" ] && exit 0 
+  for f in /etc/ferm6.d/*
+  do
+    [ "$(basename $f)" = "20iserv-ipv6.conf" ] && continue
+    [ "$(basename $f)" = "99defaults.conf" ] && continue 
+    exit 1
+  done
+  ---
+  for f in /etc/ferm6.d/*
+  do                      
+    [ "$(basename $f)" = "20iserv-ipv6.conf" ] && continue
+    [ "$(basename $f)" = "99defaults.conf" ] && continue  
+    Name="$(basename $f)"
+    [ -f "/etc/ferm.d/$Name" ] && echo "Name conflict for $Name: You have to fix this manually!" >&2 && exit 1
+    mv "$f" "/etc/ferm.d/$Name"
+  done
+
+Test "remove -R /etc/ferm6.d"
+  $(for f in /etc/ferm6.d/*
+  do
+    [ "$(basename $f)" = "20iserv-ipv6.conf" ] && continue
+    [ "$(basename $f)" = "99defaults.conf" ] && continue
+    exit 0
+  done; exit 1) || [ ! -d "/etc/ferm6.d" ]
+  ---
+  rm -rf /etc/ferm6.d
+
+Remove /etc/ferm/ferm6.conf
+
