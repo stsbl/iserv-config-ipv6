@@ -168,7 +168,7 @@ sub parse(@)
 	      $line = shift;
 	    }
 
-	    push @out, \%row;
+	    push @out, \%row if not $nic =~ /^docker|^veth/;
 	    return if !defined $line;
 	  }
 	  else
