@@ -3,13 +3,13 @@ Section: misc
 Priority: extra
 Maintainer: Stadtteilschule Blankenese <repository@stsbl.de>
 Build-Depends: debhelper (>= 10)
-Standards-Version: 3.9.8
+Build-Depends-Indep: iserv3-dev
+Standards-Version: 4.1.3.0
 Homepage: https://it.stsbl.de
 
 Package: stsbl-iserv-config-ipv6
 Architecture: all
-Depends:
-  ${misc:Depends},
+Depends: ${misc:Depends},
   ${perl:Depends},
   dnsutils,
   ipv6chdetectd,
@@ -22,6 +22,7 @@ Depends:
   wide-dhcpv6-client,
 Replaces:
   stsbl-iserv-ipv6-support (<< 17.10.24-3),
+Xb-Private-IServ-Revision: ${iserv:Revision}
 Description: IServ Config - IPv6-Unterstützung
  Enthält die Konfigurationsoberfläche, mit der die IPv6-Anbindung des Servers
  konfiguriert wird.
