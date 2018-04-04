@@ -1,0 +1,10 @@
+if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
+then
+  # restart wide dhcpv6 client if neccessary
+  if [ $(grep -E "^$IFACE$" /var/lib/iserv/config/ipv6-delegation-interfaces.list) ] || \
+   [ $(grep -E "^$IFACE$" /var/lib/iserv/config/ipv6-dhcp-interfaces.list) ]
+  then
+    /usr/lib/iserv/sleep_exec_once 10 restart_wide "iservchk -a wide; service wide-dhcpv6-client restart"
+  fi
+fi
+

@@ -1,0 +1,7 @@
+# check config of wide dhcp client
+if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
+then
+  iconf repair /etc/default/wide-dhcpv6-client || true
+  iconf repair /etc/wide-dhcpv6/dhcp6c.conf || true
+fi
+
