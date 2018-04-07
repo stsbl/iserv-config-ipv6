@@ -3,5 +3,9 @@ if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
 then
   iconf repair /etc/default/wide-dhcpv6-client || true
   iconf repair /etc/wide-dhcpv6/dhcp6c.conf || true
+
+  # accept route advertisements for other subnets
+  [ -f /proc/sys/net/ipv6/conf/"$IFACE"/accept_ra_rt_info_max_plen ] &&
+    echo 128 > /proc/sys/net/ipv6/conf/"$IFACE"/accept_ra_rt_info_max_plen
 fi
 
