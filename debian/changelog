@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (18.04.08-2) experimental; urgency=medium
+
+  * Updated packaging
+  * Updated control file
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Sun, 08 Apr 2018 00:20:26 +0200
+
 stsbl-iserv-config-ipv6 (18.04.08-1) experimental; urgency=medium
 
   * network: Improved restart handling of wide-dhcp-client
