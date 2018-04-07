@@ -1,8 +1,15 @@
-stsbl-iserv-config-ipv6 (18.02.02-1) experimental; urgency=medium
+stsbl-iserv-config-ipv6 (18.04.08-2) experimental; urgency=medium
 
-  * Added legacy script to disable ferm6 service and remove config
+  * Updated packaging
+  * Updated control file
 
- -- Felix Jacobi <felix.jacobi@stsbl.de>  Fri, 02 Feb 2018 00:58:23 +0100
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Sun, 08 Apr 2018 00:20:26 +0200
+
+stsbl-iserv-config-ipv6 (18.04.08-1) experimental; urgency=medium
+
+  * network: Improved restart handling of wide-dhcp-client
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Sun, 08 Apr 2018 00:16:47 +0200
 
 stsbl-iserv-config-ipv6 (18.01.08-1) experimental; urgency=medium
 

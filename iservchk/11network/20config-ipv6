@@ -12,3 +12,6 @@ Test "init ipv6 prefix configuration"
   ---
   echo 62 > /etc/iserv/dhcpv6-prefix
 
+Check /etc/network/if-up.d/zzz_iserv-ipv6
+ChPerm 0755 root:root /etc/network/if-up.d/zzz_iserv-ipv6
+
