@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (18.04.10-2) experimental; urgency=medium
+
+  * Added explicit conflict on stsbl-iserv-server-ferm-ipv6
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Tue, 10 Apr 2018 17:57:15 +0200
+
 stsbl-iserv-config-ipv6 (18.04.10-1) experimental; urgency=medium
 
   [ Felix Jacobi ]
