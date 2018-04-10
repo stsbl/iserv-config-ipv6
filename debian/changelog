@@ -1,3 +1,13 @@
+stsbl-iserv-config-ipv6 (18.04.10-1) experimental; urgency=medium
+
+  [ Felix Jacobi ]
+  * Added legacy script to disable ferm6 service and remove config
+  * netquery6: Ignore docker nics
+  * Updated packaging
+  * Updated control file
+
+ -- Felix Jacobi <felix.jacobi@iserv.eu>  Tue, 10 Apr 2018 17:45:36 +0200
+
 stsbl-iserv-config-ipv6 (18.04.08-2) experimental; urgency=medium
 
   * Updated packaging
