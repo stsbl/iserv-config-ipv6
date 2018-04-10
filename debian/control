@@ -1,6 +1,6 @@
 Source: stsbl-iserv-config-ipv6
 Section: misc
-Priority: extra
+Priority: standard
 Maintainer: Stadtteilschule Blankenese <repository@stsbl.de>
 Build-Depends: debhelper (>= 10)
 Build-Depends-Indep: iserv3-dev
@@ -9,12 +9,15 @@ Homepage: https://it.stsbl.de
 
 Package: stsbl-iserv-config-ipv6
 Architecture: all
+Conflicts:
+  stsbl-iserv-server-ferm-ipv6,
 Depends: ${misc:Depends},
   ${perl:Depends},
   dnsutils,
   ipv6chdetectd,
   isc-dhcp-client,
   iserv-config,
+  iserv-server-ferm (>= 18.04.10),
   iserv-update,
   libnet-ip-perl,
   libregexp-ipv6-perl,
