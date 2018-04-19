@@ -1,0 +1,15 @@
+domain (ip6) {
+  table filter {
+    chain INPUT {
+      saddr fe80::/64 jump input_linklocal;
+      saddr ff00::/8 jump input_multicast;
+      daddr ff00::/8 jump input_multicast;
+    }
+    chain input_linklocal {
+      proto udp dport dhcpv6-client ACCEPT;
+    }
+    chain input_multicast {
+      daddr ff02::1 proto ipv6-icmp icmpv6-type 134 ACCEPT;
+    }
+  }
+}
