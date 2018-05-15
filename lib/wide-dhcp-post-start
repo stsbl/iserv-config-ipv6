@@ -1,0 +1,3 @@
+#!/bin/sh
+
+run-parts --report /usr/lib/iserv/wide-dhcp-post-start.d

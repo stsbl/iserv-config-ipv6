@@ -1,8 +1,15 @@
 # check config of wide dhcp client
 if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
 then
-  iconf repair /etc/default/wide-dhcpv6-client || true
-  iconf repair /etc/wide-dhcpv6/dhcp6c.conf || true
+  if [ -f "/etc/default/wide-dhcpv6-client" ]
+  then
+    iconf repair /etc/default/wide-dhcpv6-client || true
+  fi
+
+  if [ -f "/etc/wide-dhcpv6/dhcp6c.conf" ]
+  then
+    iconf repair /etc/wide-dhcpv6/dhcp6c.conf || true
+  fi
 
   # accept route advertisements for other subnets
   [ -f /proc/sys/net/ipv6/conf/"$IFACE"/accept_ra_rt_info_max_plen ] &&
