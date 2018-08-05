@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (18.08.05-1) experimental; urgency=medium
+
+  * ferm: Cleanup
+  * netquery6: Added alternative netquery like interface for format
+
+ -- Felix Jacobi <felix.jacobi@stsbl.de>  Sun, 05 Aug 2018 22:47:48 +0200
+
 stsbl-iserv-config-ipv6 (18.05.15-1) experimental; urgency=medium
 
   * Added new handling for post wide start
