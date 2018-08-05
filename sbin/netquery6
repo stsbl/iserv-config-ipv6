@@ -35,7 +35,6 @@ my %opt;
 
 $opt{global} = 0;
 $opt{linklocal} = 0;
-$opt{format} = "ip/length";
 
 GetOptions(\%opt,
   "format|f=s",
@@ -47,6 +46,9 @@ GetOptions(\%opt,
   "quiet|q",
   "wan|w"
 ) or $opt{help} = 1;
+
+$opt{format} = shift @ARGV if not $opt{format} and @ARGV;
+$opt{format} //= "ip/length";
 
 my $count = 0;
 for my $type (("global", "linklocal", "uniquelocal"))
@@ -68,7 +70,7 @@ exit 1
   if $opt{lan} and not keys %LANInterfaces;
 
 print <<USAGE and exit if $opt{help};
-Usage: netquery6 [options]
+Usage: netquery6 [options] [format]
 Options
  -h, --help             show this help
  -f=<format>, 
@@ -83,6 +85,9 @@ Options
  -q, --quiet            do not output something
  -w, --wan              only print addresses of interfaces which
                         are not marked as lan
+
+Either --format as option or to supply the format as regular argument after
+option is allowed.
 USAGE
 
 sub ip_in_net($$)
