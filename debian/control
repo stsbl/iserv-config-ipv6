@@ -21,7 +21,8 @@ Depends: ${misc:Depends},
   iserv-update,
   libnet-ip-perl,
   libregexp-ipv6-perl,
-  radvdump,
+# => buster
+#  radvdump,
   rdnssd,
   wide-dhcpv6-client,
 Replaces:
