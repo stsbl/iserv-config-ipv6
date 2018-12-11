@@ -1,5 +1,15 @@
 #!/bin/bash -e
 
+run_regdns()
+{
+  if [ -x "$(which regdns)" ]
+  then
+    regdns $@
+  else
+    ssh $(hostname -d) regdns $@
+  fi
+}
+
 DEFIF="$(LC_ALL=C ip -6 route show default | awk '$1=="default" {print $5}' | 
   sed 's/^ppp[0-9]\+/ppp+/')"
 
@@ -22,9 +32,9 @@ done | sort)"
 
 if ! [ -z "$IPs" ] && ! [ "$IPs" = "$CURIPs" ]
 then
-  ssh $(hostname -d) regdns -d \'$(hostname). AAAA\'
+  run_regdns -d \'$(hostname). AAAA\'
   for i in ${IPs[@]}
   do
-    ssh $(hostname -d) regdns -a \'$(hostname). 300 AAAA $i\'
+    run_regdns -a \'$(hostname). 300 AAAA $i\'
   done
 fi
