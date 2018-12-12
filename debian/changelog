@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (18.12.12-1) experimental; urgency=medium
+
+  * ipv6dnsupd: Fixed forwarding of arguments to regdns
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Wed, 12 Dec 2018 02:29:23 +0100
+
 stsbl-iserv-config-ipv6 (18.12.11-1) experimental; urgency=medium
 
   * ipv6dnsupd: Run regdns directly if available as IServ nameservers allow
