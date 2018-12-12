@@ -4,9 +4,9 @@ run_regdns()
 {
   if [ -x "$(which regdns)" ]
   then
-    regdns $@
+    regdns "$@"
   else
-    ssh $(hostname -d) regdns $@
+    ssh "$(hostname -d)" regdns "$@"
   fi
 }
 
@@ -22,7 +22,7 @@ do
   echo
 done | sort)"
   
-CURIPs="$(dig +short $(hostname) AAAA @ns.iserv.eu | while read i
+CURIPs="$(dig +short "$(hostname)" AAAA @ns.iserv.eu | while read i
 do
   [ -z "$i" ] && continue
   [ "$i" = ";; connection timed out; no servers could be reached" ] && continue
@@ -32,9 +32,9 @@ done | sort)"
 
 if ! [ -z "$IPs" ] && ! [ "$IPs" = "$CURIPs" ]
 then
-  run_regdns -d \'$(hostname). AAAA\'
+  run_regdns -d "$(hostname). AAAA"
   for i in ${IPs[@]}
   do
-    run_regdns -a \'$(hostname). 300 AAAA $i\'
+    run_regdns -a "$(hostname). 300 AAAA $i"
   done
 fi
