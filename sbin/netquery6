@@ -120,7 +120,7 @@ sub parse(@)
       $line = shift;
       return if !defined $line;
  
-      if ($line =~ /^ {4}(link\/ether ($m_mac) brd $m_mac( |$)|link\/sit ($m_ip4) peer ($m_ip4))/)
+      if ($line =~ /^ {4}link\/ether ($m_mac) brd $m_mac( |$)|link\/sit ($m_ip4) peer ($m_ip4)/)
       {
         my $mac = $1 if $1;
         $mac //= "";
