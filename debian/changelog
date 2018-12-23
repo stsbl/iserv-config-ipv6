@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (18.12.23-1) experimental; urgency=medium
+
+  * netquery6: Fixed extraction of mac address
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Sun, 23 Dec 2018 12:51:19 +0100
+
 stsbl-iserv-config-ipv6 (18.12.12-1) experimental; urgency=medium
 
   * ipv6dnsupd: Fixed forwarding of arguments to regdns
