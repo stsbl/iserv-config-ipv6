@@ -72,8 +72,8 @@ Options:
 
 	-f=<format>, --format=<format>		format to print (available keywords:
 	                              		ip, prefix, length, scope, mac, nic,
-                             			valid, preferred, suffix) - default:
-	                             		ip/length
+                             			valid, preferred, valleft, prefleft,
+	                             		suffix) - default: ip/length
 
 	-g,          --global        		only print global addresses
 
@@ -178,10 +178,15 @@ sub parse(@)
             {
               my ($valid, $preferred) = $line =~ /^\ {7}valid_lft (?:(\d+)sec) preferred_lft (?:(\d+)sec)/;
               my $time = time;
+            
               $row{valid} = $time + $valid if defined $valid;
               $row{valid} //= "forever";
+              $row{valleft} = $valid // "forever";
+ 
               $row{preferred} = $time + $preferred if defined $preferred;
               $row{preferred} //= "forever";
+              $row{prefleft} = $preferred // "forever";
+
               $line = shift;
             }
 
