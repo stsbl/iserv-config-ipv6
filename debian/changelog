@@ -1,3 +1,13 @@
+stsbl-iserv-config-ipv6 (19.05.09-1) experimental; urgency=medium
+
+  * netquery6: Added support for prefleft and valleft (valid_lft and
+    preferred_lft)
+  * Updated source format
+  * Added chain for handling link local packages in raw in preperation for
+    filtering of own route advertisements
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Thu, 09 May 2019 06:10:03 +0200
+
 stsbl-iserv-config-ipv6 (18.12.23-1) experimental; urgency=medium
 
   * netquery6: Fixed extraction of mac address
