@@ -162,9 +162,9 @@ sub parse(@)
             my $suffix = join(":", unpack("(A4)*", unpack("H*", pack("B*", $raw_suffix))));
 
             my %row;
-            $row{ip} = $ip;
-            $row{prefix} = $prefix;
-            $row{suffix} = $suffix;
+            $row{ip} = Net::IP::ip_compress_address $ip, 6;
+            $row{prefix} = Net::IP::ip_compress_address $prefix, 6;
+            $row{suffix} = (Net::IP::ip_compress_address("::" . $suffix, 6) =~ s/^:://gr);
             $row{length} = $length;
             $row{scope} = $scope;
             $row{mac} = $mac;
