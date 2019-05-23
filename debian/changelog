@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (19.05.24-1) experimental; urgency=medium
+
+  * netquery6: Compress addresses in output
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Fri, 24 May 2019 00:26:28 +0200
+
 stsbl-iserv-config-ipv6 (19.05.09-1) experimental; urgency=medium
 
   * netquery6: Added support for prefleft and valleft (valid_lft and
