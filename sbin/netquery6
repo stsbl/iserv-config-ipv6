@@ -141,7 +141,7 @@ sub parse(@)
           }
           elsif (my ($ip, $length, $scope) = $line =~ /^ {4}inet6 ($m_ip6)\/(\d+)\sscope\s($m_scope)/)
           {
-            # ignore temporary ipv6 addresses (privay extensions)
+            # ignore temporary ipv6 addresses (privacy extensions)
             if ($line =~ /temporary/)
             {
               $line = shift;
@@ -164,7 +164,18 @@ sub parse(@)
             my %row;
             $row{ip} = Net::IP::ip_compress_address $ip, 6;
             $row{prefix} = Net::IP::ip_compress_address $prefix, 6;
-            $row{suffix} = (Net::IP::ip_compress_address("::" . $suffix, 6) =~ s/^:://gr);
+            my $compressed_suffix = Net::IP::ip_compress_address("::" . $suffix, 6);
+
+            # avoid removing of short group if we're dealing with a suffix starting with zero
+            if (substr($raw_suffix, 0, 16) !~ /^[0]{16}/)
+            {
+              $row{suffix} = ($compressed_suffix =~ s/^:://gr);
+            }
+            else
+            {
+              $row{suffix} = $compressed_suffix;
+            }
+
             $row{length} = $length;
             $row{scope} = $scope;
             $row{mac} = $mac;
