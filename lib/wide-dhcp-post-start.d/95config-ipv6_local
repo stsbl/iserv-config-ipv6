@@ -1,0 +1,4 @@
+#!/bin/sh
+
+run-parts --report /etc/iserv/config-ipv6/wide-dhcp-post-start.d
+exit 0

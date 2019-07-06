@@ -1,7 +1,0 @@
-profile default {
-        request domain-name-servers;
-        request domain-name;
-
-        script "/etc/wide-dhcpv6/dhcp6c-script";
-};
-
