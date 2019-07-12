@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (19.07.12-2) experimental; urgency=medium
+
+  * Removed obsolete postinst script
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Fri, 12 Jul 2019 15:28:18 +0200
+
 stsbl-iserv-config-ipv6 (19.07.12-1) experimental; urgency=medium
 
   * Fixed edge case in netquery6 which strips leading zero bits from suffix
