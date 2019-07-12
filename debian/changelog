@@ -1,3 +1,12 @@
+stsbl-iserv-config-ipv6 (19.07.12-1) experimental; urgency=medium
+
+  * Fixed edge case in netquery6 which strips leading zero bits from suffix
+  * Improved generation of wide dhcpv6 client config and reload wide instead
+    of restart it
+  * Added systemd unit for wide dhcpv6 client
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Fri, 12 Jul 2019 15:26:24 +0200
+
 stsbl-iserv-config-ipv6 (19.05.24-1) experimental; urgency=medium
 
   * netquery6: Compress addresses in output
