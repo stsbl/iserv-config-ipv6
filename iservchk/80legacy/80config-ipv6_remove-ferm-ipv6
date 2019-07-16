@@ -38,3 +38,8 @@ Test "remove -R /etc/ferm6.d"
 
 Remove /etc/ferm/ferm6.conf
 
+Test "purge stsbl-iserv-server-ferm-ipv6"
+  [ ! -f "/etc/init.d/ferm6" ]
+  ---
+  /usr/lib/iserv/aptitude_auto purge stsbl-iserv-server-ferm-ipv6
+
