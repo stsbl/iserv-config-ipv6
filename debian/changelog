@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (19.07.17-1) experimental; urgency=medium
+
+  * Purge stsbl-iserv-server-ferm-ipv6 finally
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Wed, 17 Jul 2019 01:33:39 +0200
+
 stsbl-iserv-config-ipv6 (19.07.12-2) experimental; urgency=medium
 
   * Removed obsolete postinst script
