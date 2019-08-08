@@ -23,8 +23,7 @@ Depends: ${misc:Depends},
   libnet-ip-perl,
   libpath-tiny-perl,
   libregexp-ipv6-perl,
-# => buster
-#  radvdump,
+  iserv-transition (<< 10:0) | radvdump,
   rdnssd,
   wide-dhcpv6-client,
 Replaces:
