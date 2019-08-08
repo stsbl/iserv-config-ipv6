@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (19.08.08-1) experimental; urgency=medium
+
+  * Added radvdump for buster
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Thu, 08 Aug 2019 03:55:58 +0200
+
 stsbl-iserv-config-ipv6 (19.07.17-1) experimental; urgency=medium
 
   * Purge stsbl-iserv-server-ferm-ipv6 finally
