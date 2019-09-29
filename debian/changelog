@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (19.09.30-1) experimental; urgency=medium
+
+  * Bumped copyright
+  * Added library for IPv6 handling
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Mon, 30 Sep 2019 01:15:09 +0200
+
 stsbl-iserv-config-ipv6 (19.08.08-1) experimental; urgency=medium
 
   * Added radvdump for buster
