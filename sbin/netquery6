@@ -5,8 +5,9 @@ use strict;
 use Getopt::Long qw(:config no_ignore_case);
 use Net::IP;
 use Regexp::IPv6;
+use Stsbl::IServ::Net::IPv6;
 
-Getopt::Long::Configure ("bundling");
+Getopt::Long::Configure("bundling");
 
 my $fn_iserv_cfg = "/var/lib/iserv/config/config.pm";
 my %lan_interfaces;
@@ -118,7 +119,7 @@ sub parse(@)
       my $nic = $1;
       
       $line = shift;
-      return if !defined $line;
+      return unless defined $line;
  
       if ($line =~ /^ {4}link\/ether ($m_mac) brd $m_mac( |$)|link\/sit ($m_ip4) peer ($m_ip4)/)
       {
@@ -126,7 +127,7 @@ sub parse(@)
         $mac //= "";
 
         $line = shift;
-        return if !defined $line;
+        return unless defined $line;
 
         while ($line =~ /^ {4}/)
         {
@@ -134,10 +135,10 @@ sub parse(@)
           {
             # noop
             $line = shift;
-            return if !defined $line;
+            return unless defined $line;
 
             $line = shift if $line =~ /\ {7}valid_lft /; # kernel > 3.2
-            return if !defined $line;
+            return unless defined $line;
           }
           elsif (my ($ip, $length, $scope) = $line =~ /^ {4}inet6 ($m_ip6)\/(\d+)\sscope\s($m_scope)/)
           {
@@ -145,35 +146,31 @@ sub parse(@)
             if ($line =~ /temporary/)
             {
               $line = shift;
-              return if !defined $line;
+              return unless defined $line;
               $line = shift
                 if (defined $line and $line =~ /^\ {7}valid_lft /);
-              return if !defined $line;
+              return unless defined $line;
               next;
             }
 
-            $ip = Net::IP::ip_expand_address($ip, 6);
-
-            my $raw = unpack("B*", pack("H*", join "", split/:/, $ip));
             my $id_length = 128 - $length;
-            my $raw_prefix = substr($raw, 0, -$id_length);
-            my $prefix = join(":", unpack("(A4)*", unpack("H*", pack("B*", $raw_prefix))))."::";
-            my $raw_suffix = substr($raw, -$id_length);
-            my $suffix = join(":", unpack("(A4)*", unpack("H*", pack("B*", $raw_suffix))));
+
+            my $prefix = ip_to_prefix($ip, $length) . "::";
+            my $raw_suffix = raw_suffix_from_ip $ip, $id_length;
+            my $suffix = ip_to_suffix $ip, $id_length;
 
             my %row;
             $row{ip} = Net::IP::ip_compress_address $ip, 6;
             $row{prefix} = Net::IP::ip_compress_address $prefix, 6;
-            my $compressed_suffix = Net::IP::ip_compress_address("::" . $suffix, 6);
 
             # avoid removing of short group if we're dealing with a suffix starting with zero
             if (substr($raw_suffix, 0, 16) !~ /^[0]{16}/)
             {
-              $row{suffix} = ($compressed_suffix =~ s/^:://gr);
+              $row{suffix} = ($suffix =~ s/^:://gr);
             }
             else
             {
-              $row{suffix} = $compressed_suffix;
+              $row{suffix} = $suffix;
             }
 
             $row{length} = $length;
@@ -205,13 +202,13 @@ sub parse(@)
                (keys %{ $opt{interface} } == 0 or exists $opt{interface}->{$nic})
             ;
 
-            return if !defined $line;
+            return unless defined $line;
           }
           else
           {
             warn "parse error, unknown address family: $line\n";
             $line = shift;
-            return if !defined $line;
+            return unless defined $line;
           }
         }
       }
@@ -222,19 +219,19 @@ sub parse(@)
         # sit -> ignore because it only contains information about
         #  tunnel endpoints, used information are parsed above
         # tun* is shown as link/none -> ignore because dynamic
-        do { $line = shift; return if !defined $line; } while $line =~ /^ {4}/;
+        do { $line = shift; return unless defined $line; } while $line =~ /^ {4}/;
       }
       else
       {
          warn "parse error, unknown link: $line\n";
          $line = shift;
-         return if !defined $line;
+         return unless defined $line;
       }
     }
     else {
       warn "parse error, unknown interface: $line\n";
       $line = shift;
-      return if !defined $line;
+      return unless defined $line;
     }
   }
 }
@@ -255,7 +252,7 @@ for my $ip (@out)
   delete $ip->{uniquelocal};
 
   # default to global scope as wanted by rfc
-  $global = 1 if !$linklocal and !$uniquelocal;
+  $global = 1 unless $linklocal or $uniquelocal;
 
   if ($opt{lan} and !defined $lan_interfaces{$ip->{nic}})
   {
@@ -276,8 +273,8 @@ for my $ip (@out)
   next if $linklocal and !$opt{linklocal};
   next if $uniquelocal and !$opt{uniquelocal};
 
-  print $output if !$opt{quiet};
+  print $output unless $opt{quiet};
   $out++;
 }
 
-exit 1 if !$out;
+exit 1 unless $out;
