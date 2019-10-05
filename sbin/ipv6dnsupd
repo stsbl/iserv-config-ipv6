@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 
 run_regdns()
 {
@@ -10,12 +11,11 @@ run_regdns()
   fi
 }
 
-DEFIF="$(LC_ALL=C ip -6 route show default | awk '$1=="default" {print $5}' | 
-  sed 's/^ppp[0-9]\+/ppp+/')"
+DEFIF="$(. /usr/lib/iserv/ipv6_defif)"
 
 [ -z "$DEFIF" ] && exit 0
 
-IPs="$(netquery6 --global --format "nic ip" | grep $DEFIF | awk '{ print $2 }' | while read i
+IPs="$(netquery6 -i "$DEFIF" -g "ip" | while read i
 do
   [ -z "$i" ] && continue
   perl -e 'use Net::IP; print Net::IP::ip_expand_address "'$i'", 6;'

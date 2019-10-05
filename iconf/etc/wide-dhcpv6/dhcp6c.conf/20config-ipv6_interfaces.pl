@@ -17,7 +17,7 @@ if (-r $fn_prefix)
   chomp $prefix_len;
 }
 
-my @nics = split /\n/, qx(netquery6 --format nic);
+my @nics = split /\n/, qx(netquery6 nic);
 pop @nics;
 
 my %nics = map { $_ => 1 } @nics;
