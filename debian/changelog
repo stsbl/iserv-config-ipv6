@@ -1,3 +1,11 @@
+stsbl-iserv-config-ipv6 (19.10.13-1) testing; urgency=medium
+
+  * various: Improved netquery6 usage
+  * ipv6_defif: Moved from ipv6-support
+  * sysctl: Fixed sysctl.conf templates for VLAN NICs
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Sun, 13 Oct 2019 18:13:52 +0200
+
 stsbl-iserv-config-ipv6 (19.09.30-1) experimental; urgency=medium
 
   * Bumped copyright
