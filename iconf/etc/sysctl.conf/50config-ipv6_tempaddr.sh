@@ -25,7 +25,7 @@ then
 fi
 
 if [[ ${#WanNics[@]} -gt 0 ]] &&
-    ([ -f "/var/lib/dpkg/info/iserv-backup.list" ]] ||
+    ([ -f "/var/lib/dpkg/info/iserv-backup.list" ] ||
     [ -f "/var/lib/dpkg/info/iserv-backup2-server.list" ])
 then
   echo "# Kill tempaddr as backupmon has problems with it"
