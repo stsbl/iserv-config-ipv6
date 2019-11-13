@@ -1,3 +1,9 @@
+stsbl-iserv-config-ipv6 (19.11.13-1) testing; urgency=medium
+
+  * Moved /etc/network/interfaces.d/ipv6-ula from ipv6-support
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Wed, 13 Nov 2019 09:32:53 +0100
+
 stsbl-iserv-config-ipv6 (19.10.21-1) stable; urgency=medium
 
   * Sysctl.conf: Fixed syntax error in iconf template
