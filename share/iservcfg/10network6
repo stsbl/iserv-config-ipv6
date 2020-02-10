@@ -2,15 +2,14 @@
 use warnings;
 use strict;
 use utf8;
-use Socket;
-use File::Slurp::Unicode;
-use Getopt::Long;
-use Tie::IxHash;
 use File::Basename;
-use IServ::IO;
-use IServ::IConf;
+use Getopt::Long;
 use IServ::Dialog qw(msgbox confirm inputbox menu checklist);
+use IServ::IConf;
+use Path::Tiny;
 use Regexp::IPv6;
+use Socket;
+use Tie::IxHash;
 
 my $mask_ip = qr/($Regexp::IPv6::IPv6_re(|\/(\d+)))/;
 my $mask_ips = qr/$mask_ip(?: $mask_ip)*/;
@@ -92,7 +91,7 @@ sub if_hardware($)
   my @ids;
   for (grep -f "$dir/$_", qw(vendor device subsystem_vendor subsystem_device))
   {
-    push @ids, (getfile "$dir/$_") =~ /0x(.+)/g;
+    push @ids, (path("$dir/$_")->slurp_utf8) =~ /0x(.+)/g;
   }
   pci_lookup @ids;
 }
@@ -102,7 +101,7 @@ sub if_mac($)
   my ($if) = @_;
   my $fn = "/sys/class/net/$if/address";
   return unless -f $fn;
-  my $res = getfile $fn;
+  my $res = path($fn)->slurp_utf8;
   chomp $res;
   $res;
 }
@@ -138,7 +137,7 @@ sub ifs_parse()
 {
   my $if;
   my %conf;
-  for (getfile $cfg)
+  for (path($cfg)->lines_utf8)
   {
     s/^\s+|\s$//g;
     next if /^#|^$/;
@@ -177,7 +176,7 @@ sub ifs_parse()
 sub ifs_write(%)
 {
   my %new = @_;
-  my @in = getfile $cfg;
+  my @in = path($cfg)->lines_utf8;
   my $orig = join "", @in;
   my $mode = "";
   my $out = "";
@@ -230,7 +229,7 @@ sub ifs_write(%)
   if ($out ne $orig)
   {
     ifs_backup;
-    putfile $cfg, $out;
+    path($cfg)->spew_utf8($out);
   }
 }
 
@@ -277,12 +276,12 @@ my %conf = %{( ifs_parse )};
 
 if (-f $fn_dhcp)
 {
-  %dhcp_interfaces = map { $_ => 1 } split /\n/, join "", read_file $fn_dhcp;
+  %dhcp_interfaces = map { $_ => 1 } map { chomp } path($fn_dhcp)->lines_utf8;
 }
 
 if (-f $fn_delegation)
 {
-  %delegation_interfaces = map { $_ => 1 } split /\n/, join "", read_file $fn_delegation;
+  %delegation_interfaces = map { $_ => 1 } map { chomp } path($fn_delegation)->lines_utf8;
 }
 
 my $sel;
