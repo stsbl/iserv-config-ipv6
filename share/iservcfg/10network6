@@ -276,12 +276,12 @@ my %conf = %{( ifs_parse )};
 
 if (-f $fn_dhcp)
 {
-  %dhcp_interfaces = map { $_ => 1 } map { chomp } path($fn_dhcp)->lines_utf8;
+  %dhcp_interfaces = map { $_ => 1 } split /\n/, path($fn_dhcp)->slurp_utf8;
 }
 
 if (-f $fn_delegation)
 {
-  %delegation_interfaces = map { $_ => 1 } map { chomp } path($fn_delegation)->lines_utf8;
+  %delegation_interfaces = map { $_ => 1 } split /\n/, path($fn_delegation)->slurp_utf8;
 }
 
 my $sel;
@@ -339,9 +339,9 @@ while (1)
     ifs_write %changes;
     
     print "write $fn_dhcp\n";
-    write_file $fn_dhcp, join "\n", keys %dhcp_interfaces;
+    path($fn_dhcp)->spew_utf8(join "\n", keys %dhcp_interfaces);
     print "write $fn_delegation\n";
-    write_file $fn_delegation, join "\n", keys %delegation_interfaces;
+    path($fn_delegation)->spew_utf8(join "\n", keys %delegation_interfaces);
    
     if (!keys %dhcp_interfaces)
     {
