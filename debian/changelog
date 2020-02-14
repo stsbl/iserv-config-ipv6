@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (20.02.14-2) stable; urgency=medium
+
+  * iservcfg network6: Fixed magic method
+  * Added libiserv-dialog-perl dependency
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Fri, 14 Feb 2020 01:10:57 +0100
+
 stsbl-iserv-config-ipv6 (20.02.14-1) stable; urgency=medium
 
   * Removed IServ::IO
