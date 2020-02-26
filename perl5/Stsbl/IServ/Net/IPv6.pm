@@ -34,7 +34,7 @@ sub raw_prefix_from_ip($$)
 {
   my ($ip, $length) = @_;
   my $raw = ip_to_raw $ip;
-  my $raw_prefix = substr($raw, 0, -$length);
+  my $raw_prefix = substr($raw, 0, $length);
 
   $raw_prefix;
 }
