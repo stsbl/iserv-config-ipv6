@@ -161,7 +161,7 @@ sub parse(@)
 
             my %row;
             $row{ip} = Net::IP::ip_compress_address $ip, 6;
-            $row{prefix} = Net::IP::ip_compress_address $prefix, 6;
+            $row{prefix} = Net::IP::ip_compress_address($prefix, 6) // $ip;
 
             # avoid removing of short group if we're dealing with a suffix starting with zero
             if (substr($raw_suffix, 0, 16) !~ /^[0]{16}/)
@@ -266,6 +266,7 @@ for my $ip (@out)
 
   for my $field (sort keys %{ $ip })
   {
+    next unless defined $ip->{$field};
     $output =~ s/$field/$ip->{$field}/g;
   }
 
