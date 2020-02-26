@@ -4,7 +4,7 @@ stsbl-iserv-config-ipv6 (20.02.27-1) stable; urgency=medium
     (128 bits)
   * Stsbl::IServ::Net::IPv6: Fixed raw_prefix_from_ip
 
- -- Stadtteilschule Blankenese <repository@stsbl.de>  Thu, 27 Feb 2020 00:46:30 +0100
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Thu, 27 Feb 2020 00:46:30 +0100
 
 stsbl-iserv-config-ipv6 (20.02.14-2) stable; urgency=medium
 
