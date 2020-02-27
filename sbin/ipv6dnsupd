@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+exec 2> >(grep -vE "^dig: couldn't get address for 'ns.iserv.eu': failure$")
+
 run_regdns()
 {
   if [ -x "$(which regdns)" ]
