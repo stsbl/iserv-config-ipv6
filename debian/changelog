@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (20.03.10-1) stable; urgency=medium
+
+  * Ipv6dnsupd: Don't bark if ns.iserv.eu is not resolvable
+  * Improved wide-dhcpv6-client systemd unit
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Tue, 10 Mar 2020 03:31:44 +0100
+
 stsbl-iserv-config-ipv6 (20.02.27-1) stable; urgency=medium
 
   * netquery6: Fixed prefix field being undefined for IPs with network
