@@ -1,12 +1,13 @@
 [Unit]
 Description=WIDE DHCPv6 client
-Wants=network-online.target
-After=network.target network-online.target
+Documentation=man:dhcp6c(8) man:dhcp6c.conf(5)
+After=networking.service
 
 [Service]
 EnvironmentFile=/etc/default/wide-dhcpv6-client
 Type=simple
-ExecStart=/usr/sbin/dhcp6c $DEBUG -Pdefault -- $INTERFACES
+ExecStart=/usr/sbin/dhcp6c -f $DEBUG -Pdefault -- $INTERFACES
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=network.target
+WantedBy=network-online.target

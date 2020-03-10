@@ -11,8 +11,10 @@ if [ -s /var/lib/iserv/config/ipv6-dhcp-interfaces.list ]
 then
   echo "Check /etc/wide-dhcpv6/dhcp6c.conf"
   echo "Reload wide-dhcpv6-client"
+  echo "Enable iserv-wide-dhcpv6-wait"
 else
   echo "Remove /etc/wide-dhcpv6/dhcp6c.conf"
   echo "Stop wide-dhcpv6-client"
+  echo "Disable iserv-wide-dhcpv6-wait"
 fi
 echo

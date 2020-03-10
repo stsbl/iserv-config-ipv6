@@ -1,0 +1,13 @@
+#!/bin/sh
+
+for i in $(/usr/bin/seq 1 60)
+do
+  echo "Sleeping along ..."
+  sleep 1
+  if [ -f "/run/wide-dhcpv6-script" ]
+  then
+    sleep 9
+    echo "WIDE DHCPv6 client started. Exiting."
+    exit 0
+  fi
+done

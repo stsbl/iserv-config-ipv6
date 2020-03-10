@@ -1,0 +1,10 @@
+[Unit]
+Description=IServ Wait for WIDE DHCPv6 client
+Requires=wide-dhcpv6-client.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/iserv/wide-dhcpv6-wait
+
+[Install]
+WantedBy=network.target
