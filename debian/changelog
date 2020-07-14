@@ -1,3 +1,13 @@
+stsbl-iserv-config-ipv6 (20.07.14-1) stable; urgency=medium
+
+  * iservcfg network6: Added support for multiple stanzas for same
+    interface
+  * iservcfg network6: Finished support for multiple stanzas, resolved
+    FIXMEs, fixed duplication on saving, fixed displaying for "magic"
+    methods
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Tue, 14 Jul 2020 22:51:12 +0200
+
 stsbl-iserv-config-ipv6 (20.03.10-1) stable; urgency=medium
 
   * Ipv6dnsupd: Don't bark if ns.iserv.eu is not resolvable
