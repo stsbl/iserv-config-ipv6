@@ -195,6 +195,7 @@ sub ifs_write(%)
     if ($k eq "auto" or $k =~ /^allow-/)
     {
       @v = subtract @v, grep { not defined $new{$_} } keys %new;
+      @v = subtract @v, grep { defined $new{$_} and $new{$_} eq "" } keys %new;
       next unless @v;
       $_ = "$k @v\n";
     }
@@ -213,6 +214,7 @@ sub ifs_write(%)
       {
         $mode = "subst";
         $_ = $new{$if};
+        $new{$if} = "";
       }
       else
       {
@@ -224,6 +226,7 @@ sub ifs_write(%)
     {
       next if $mode eq "del" or $mode eq "subst" and length $k;
     }
+
     $out .= $_;
   }
 
@@ -353,9 +356,9 @@ while (1)
     print "write $cfg\n";
     ifs_write %changes;
     print "write $fn_dhcp\n";
-    path($fn_dhcp)->spew_utf8(join "\n", keys %dhcp_interfaces);
+    path($fn_dhcp)->spew_utf8(join "\n", sort keys %dhcp_interfaces);
     print "write $fn_delegation\n";
-    path($fn_delegation)->spew_utf8(join "\n", keys %delegation_interfaces);
+    path($fn_delegation)->spew_utf8(join "\n", sort keys %delegation_interfaces);
     if (!keys %dhcp_interfaces)
     {
       # stop wide if no dhcp interfaces are configured
@@ -505,7 +508,7 @@ while (1)
           elsif ($attr eq "save")
           {
             # check values
-            if (my @inv = grep $def{$_} !~ $mask{$_}, sort keys %mask)
+            if (my @inv = grep { ($def{$_} // "") !~ $mask{$_} } sort keys %mask)
             {
               msgbox "Ungültig: @inv";
               next;
@@ -530,28 +533,44 @@ while (1)
               }
             }
             # store values
-            $def[$stanza_key] = $conf{$if}[$stanza_key] = \%def;
+            # outside brackets creates a secondary hash reference with values
+            # of the inner hash reference
+            $conf{$if}[$stanza_key] = { %{ $def[$stanza_key] = \%def } };
             # handle automagically methods (widedhcp and delg)
             if ($conf{$if}[$stanza_key]{_method} eq "widedhcp")
             {
               $dhcp_interfaces{$if} = 1;
-              $conf{$if}[$stanza_key]{_method} = "manual";
+              $def[$stanza_key]{_method} = "manual";
             }
-            # FIXME!!!
-            #else
-            #{
-            #  delete $dhcp_interfaces{$if};
-            #}
+            else
+            {
+              my $dhcp_found = 0;
+              my @if_conf = @{ $conf{$if} };
+
+              for my $stanza_key (0..$#if_conf)
+              {
+                do { $dhcp_found = 1; last; } if $conf{$if}[$stanza_key]{_method} eq "widedhcp";
+              }
+
+              delete $dhcp_interfaces{$if} unless $dhcp_found;
+            }
             if ($conf{$if}[$stanza_key]{_method} eq "delg")
             {
               $delegation_interfaces{$if} = 1;
-              $conf{$if}[$stanza_key]{_method} = "manual";
+              $def[$stanza_key]{_method} = "manual";
             }
-            # FIXME!!!
-            #else
-            #{
-            #  delete $delegation_interfaces{$if};
-            #}
+            else
+            {
+              my $delg_found = 0;
+              my @if_conf = @{ $conf{$if} };
+
+              for my $stanza_key (0..$#if_conf)
+              {
+                do { $delg_found = 1; last; } if $conf{$if}[$stanza_key]{_method} eq "delg";
+              }
+
+              delete $delegation_interfaces{$if} unless $delg_found;
+            }
 
             $changes{$if} = "";
             for my $i (0..$#def)
@@ -561,6 +580,9 @@ while (1)
               (join "", map "\t$_ $def{$_}\n", grep !/^_/, keys %def);
             }
 
+            # copy current config to defintion to ensure correct displaying
+            # (e.g. manual + delg => delg instead of manual as method)
+	    $def[$stanza_key] = { %{ $conf{$if}[$stanza_key] } };
             last;
           }
           elsif ($attr eq "status")
@@ -575,11 +597,11 @@ while (1)
               $sel = menu "Status of $if", $sel, %stat, "-", "-", "exit", "Beenden";
               if (!$sel or $sel eq "exit")
               {
-                      last;
+                last;
               }
               elsif (defined $stat{$sel} and length $stat{$sel} > 48)
               {
-                      msgbox "$sel: $stat{$sel}";
+                msgbox "$sel: $stat{$sel}";
               }
             }
           }
