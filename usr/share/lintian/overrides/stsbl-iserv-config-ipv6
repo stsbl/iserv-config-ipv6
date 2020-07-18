@@ -1,2 +1,6 @@
 # by design
 stsbl-iserv-config-ipv6: extra-license-file usr/share/doc/stsbl-iserv-config-ipv6/LICENSE
+
+stsbl-iserv-config-ipv6: uses-dpkg-database-directly usr/share/iserv/iconf/etc/sysctl.conf/50config-ipv6_tempaddr.sh
+stsbl-iserv-config-ipv6: systemd-service-file-refers-to-unusual-wantedby-target lib/systemd/system/iserv-wide-dhcpv6-wait.service network.target
+stsbl-iserv-config-ipv6: systemd-service-file-refers-to-unusual-wantedby-target lib/systemd/system/wide-dhcpv6-client.service network.target

@@ -2,3 +2,9 @@
 
 %:
 	dh $@ --with iserv --with stsbl
+
+override_dh_systemd_start:
+	dh_systemd_start -X iserv-wide-dhcpv6-wait.service
+
+override_dh_installsystemd:
+	dh_installsystemd -X iserv-wide-dhcpv6-wait.service
