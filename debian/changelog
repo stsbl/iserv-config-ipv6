@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (20.08.02-1) testing; urgency=medium
+
+  * Exclude wait unit from being started by postinst script
+  * Updated locale handling to use genpo
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Sun, 02 Aug 2020 07:19:40 +0200
+
 stsbl-iserv-config-ipv6 (20.07.14-1) stable; urgency=medium
 
   * iservcfg network6: Added support for multiple stanzas for same
