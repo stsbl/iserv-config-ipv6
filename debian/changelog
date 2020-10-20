@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (20.10.20-1) stable; urgency=medium
+
+  * Updated license copyright
+  * Adapted network configuration to iserv-update changes
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Tue, 20 Oct 2020 23:33:12 +0200
+
 stsbl-iserv-config-ipv6 (20.08.02-1) testing; urgency=medium
 
   * Exclude wait unit from being started by postinst script
