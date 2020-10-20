@@ -3,7 +3,7 @@ Touch /etc/network/interfaces.d/ipv6
 ChPerm 0644 root:root /etc/network/interfaces.d/ipv6
 
 Insert "/etc/network/interfaces"
-  "source /etc/network/interfaces.d/*"
+  "source-directory /etc/network/interfaces.d"
 
 Touch /var/lib/iserv/config/ipv6-{dhcp,delegation}-interfaces.list
 
