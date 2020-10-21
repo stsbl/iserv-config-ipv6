@@ -2,6 +2,13 @@ MkDir 0755 root:root /etc/network/interfaces.d
 Touch /etc/network/interfaces.d/ipv6
 ChPerm 0644 root:root /etc/network/interfaces.d/ipv6
 
+Test "fix multiple source-directory in /etc/network/interfaces"
+  grep -qx 20config-ipv6_source-directory /var/lib/iserv/config/update.log
+  ---
+  sed -i '/^source-directory \/etc\/network\/interfaces\.d$/d' \
+      /etc/network/interfaces &&
+      echo 20config-ipv6_source-directory >> /var/lib/iserv/config/update.log
+
 Insert "/etc/network/interfaces"
   "source-directory /etc/network/interfaces.d"
 
