@@ -2,9 +2,10 @@ Source: stsbl-iserv-config-ipv6
 Section: misc
 Priority: standard
 Maintainer: Stadtteilschule Blankenese <repository@stsbl.de>
-Build-Depends: debhelper (>= 10)
-Build-Depends-Indep: iserv-buildtools
-Standards-Version: 4.4.1
+Build-Depends: debhelper-compat (= 13),
+  dh-sequence-iserv,
+  dh-sequence-stsbl,
+Standards-Version: 4.5.0
 Homepage: https://it.stsbl.de
 
 Package: stsbl-iserv-config-ipv6
