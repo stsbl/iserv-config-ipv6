@@ -2,39 +2,33 @@ Source: stsbl-iserv-config-ipv6
 Section: misc
 Priority: standard
 Maintainer: Stadtteilschule Blankenese <repository@stsbl.de>
-Build-Depends: debhelper-compat (= 13),
-  dh-sequence-iserv,
-  dh-sequence-stsbl,
+Build-Depends: debhelper-compat (= 13), dh-sequence-iserv, dh-sequence-stsbl
 Standards-Version: 4.5.0
 Homepage: https://it.stsbl.de
 
 Package: stsbl-iserv-config-ipv6
 Architecture: all
-Depends: ${misc:Depends},
-  ${perl:Depends},
-  dnsutils,
-  ipv6chdetectd,
-  isc-dhcp-client,
-  iserv-config,
-  iserv-server-ferm (>= 18.04.10),
-  iserv-update,
-  libiserv-dialog-perl,
-  liblist-moreutils-perl,
-  libnet-ip-perl,
-  libpath-tiny-perl,
-  libregexp-ipv6-perl,
-  iserv-transition (<< 10:0) | radvdump,
-  rdnssd,
-  wide-dhcpv6-client,
-Conflicts:
-  stsbl-iserv-server-ferm-ipv6,
-Breaks:
-  stsbl-iserv-ipv6-support (<< 19.11.13),
-Replaces:
-  stsbl-iserv-ipv6-support (<< 19.11.13),
-Suggests:
-  iserv-regdns,
-Xb-Private-IServ-Revision: ${iserv:Revision}
+Depends: dnsutils,
+         ipv6chdetectd,
+         isc-dhcp-client,
+         iserv-config,
+         iserv-server-ferm (>= 18.04.10),
+         iserv-transition (<< 10:0) | radvdump,
+         iserv-update,
+         libiserv-dialog-perl,
+         liblist-moreutils-perl,
+         libnet-ip-perl,
+         libpath-tiny-perl,
+         libregexp-ipv6-perl,
+         rdnssd,
+         wide-dhcpv6-client,
+         ${misc:Depends},
+         ${perl:Depends}
+Conflicts: stsbl-iserv-server-ferm-ipv6
+Breaks: stsbl-iserv-ipv6-support (<< 19.11.13)
+Replaces: stsbl-iserv-ipv6-support (<< 19.11.13)
+Suggests: iserv-regdns
+Xb-Private-Iserv-Revision: ${iserv:Revision}
 Description: IServ-Konfiguration - IPv6-Unterstützung
  Enthält die Konfigurationsoberfläche, mit der die IPv6-Anbindung des Servers
  konfiguriert wird.
