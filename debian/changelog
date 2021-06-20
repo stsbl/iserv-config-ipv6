@@ -1,3 +1,13 @@
+stsbl-iserv-config-ipv6 (21.06.21.1) stable; urgency=medium
+
+  * Fixed Build-Depends
+  * Converted package to iservinstall
+  * Moved to iservinstall
+  * Updated copyright
+  * Turned source format to native
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Mon, 21 Jun 2021 00:03:13 +0200
+
 stsbl-iserv-config-ipv6 (20.10.21-1) stable; urgency=medium
 
   * Fixed multiple source-directory statements in /etc/network/interfaces
