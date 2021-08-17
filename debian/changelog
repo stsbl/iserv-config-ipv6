@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (21.08.17.1) stable; urgency=medium
+
+  * Ferm: Removed sending rejects, drop instead
+  * Switched to git source format
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Tue, 17 Aug 2021 23:07:58 +0200
+
 stsbl-iserv-config-ipv6 (21.06.21.3) stable; urgency=medium
 
   * Readded missing override
