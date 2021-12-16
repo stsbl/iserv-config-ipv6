@@ -3,6 +3,8 @@
 use warnings;
 use strict;
 use Getopt::Long qw(:config no_ignore_case);
+use JSON;
+use List::Util qw(uniq);
 use Net::IP;
 use Regexp::IPv6;
 use Stsbl::IServ::Net::IPv6;
@@ -41,13 +43,13 @@ GetOptions(\%opt,
   "interface|i=s@",
   "lan|l",
   "linklocal|p",
+  "nonl|n",
   "uniquelocal|u",
   "quiet|q",
   "wan|w"
 ) or $opt{help} = 1;
 
-$opt{format} = shift @ARGV if not $opt{format} and @ARGV;
-$opt{format} //= "ip/length";
+$opt{format} //= shift @ARGV // "ip/bits";
 my %interfaces = map { $_ => 1 } @{ $opt{interface} };
 $opt{interface} = \%interfaces;
 
@@ -61,42 +63,55 @@ if ($count < 1)
   $opt{uniquelocal} = 1;
 }
 
-die "You shall not combine --wan and --lan!\n" if $opt{lan} and $opt{wan};
-
-exit 1 
-  if $opt{lan} and not keys %lan_interfaces;
+warn "You shall not combine --wan and --lan!\n\n" and $opt{help} = 1 if $opt{lan} and $opt{wan};
 
 print <<USAGE and exit if $opt{help};
 Usage: netquery6 [options] [format]
-Options:
-	-h, --help                   		show this help
 
-	-f=<format>, --format=<format>		format to print (available keywords:
-	                              		ip, prefix, length, scope, mac, nic,
-                             			valid, preferred, valleft, prefleft,
-	                             		suffix) - default: ip/length
+Options
+  -f=<format>, --format=<format>        Format to print (see below).
+  -g,          --global                 only print global addresses.
+  -h,          --help                   Show this help.
+  -i=<nic>,    --interface=<nic>        Only print addresses assigned to this
+                                        network interface.
+  -l,          --lan                    Only print addresses of interfaces.
+                                        Mutually exclusive with --wan.
+  -n,          --nonl                   Do not output trailing newline.
+  -p,          --linklocal              Only print link-local addresses.
+  -u,          --uniquelocal            Only print unique-local addresses.
+  -q,          --quiet                  Do not output anything.
+  -w,          --wan                    Only print addresses of interfaces which
+                                        are not marked as LAN.
+                                        Mutually exclusive with --lan.
+Format         default: ip/bits
+  ip           full IP address
+  net          The network according to network mask/CIDR.
+  prefix       **Deprecated**. Alias for net.
+  bits         Set bits in network mask
+  length       **Deprecated**. Alias for bits.
+  scope        Scope of address (linklocal or global).
+  mac          Hardware address of interface
+  nic          Network interface card
+  valid        Until when (UNIX timestamp) is the address still valid.
+  preferred    Until when (UNIX timestamp) is the address still preferred.
+  valleft      How many seconds is the address still valid.
+  prefleft     How many seconds is the address still preferred.
+  iid          The interface identifier part of the address.
+  suffix       **Deprecated**. Alias for iid.
 
-	-g,          --global        		only print global addresses
+Any other string will be copied into the result unmodified.
 
- 	-i,          --interface     		only print addresses assigned to this
-	                             		network interface
-
-	-l,          --lan           		only print addresses of interfaces
-	                             		which are marked as lan
-
-	-p,          --linklocal     		only print link-local addresses
-
-	-u,          --uniquelocal   		only print unique-local addresses
-
-	-q,          --quiet         		do not output anything
-
-	-w,          --wan           		only print addresses of interfaces which
-		                             	are not marked as lan
+CAUTION: You must sanity check netquery output. If a field such as the broadcast
+address is not available the fieldname will be passed through and printed.
 
 Either --format as option or to supply the format as regular argument after
 option is allowed. If no matching addresses are found, netquery6 returns
 exit code 1.
 USAGE
+
+exit 1 
+  if $opt{lan} and not keys %lan_interfaces;
+
 
 sub ip_in_net($$)
 {
@@ -108,177 +123,98 @@ sub ip_in_net($$)
   $net->overlaps($ip, $net) eq $Net::IP::IP_B_IN_A_OVERLAP;
 }
 
-sub parse(@)
+my $data = decode_json qx(/sbin/ip --json address show up);
+
+for my $row (@{$data})
 {
-  my $line = shift;
-
-  while (defined $line)
+  # loopback -> ignore because lo is often handled specially
+  # ppp* -> ignore because dynamic
+  # sit -> ignore because it only contains information about tunnel endpoints
+  # tun* is shown as link/none -> ignore because dynamic
+  # docker*/veth* -> ignore because Docker is out of scope for IPv6 at now
+  unless (
+      !defined $row->{ifname} or
+      ($row->{link_type} =~ /^(loopback|ppp|none|sit)$/) or
+      $row->{ifname} =~ /^docker|^veth/ or
+      (keys %{ $opt{interface} } != 0 and not exists $opt{interface}->{$row->{ifname}}))
   {
-    if ($line =~ /^\d+: ($m_if)(\@$m_if)?:/)
+    my %nic_fields = ();
+    $nic_fields{nic} = $row->{ifname};
+    $nic_fields{mac} = $row->{address} if defined $row->{address};
+
+    for my $addr (@{$row->{addr_info}})
     {
-      my $nic = $1;
-      
-      $line = shift;
-      return unless defined $line;
- 
-      if ($line =~ /^ {4}link\/ether ($m_mac) brd $m_mac( |$)|link\/sit ($m_ip4) peer ($m_ip4)/)
+      # Only IPv6
+      next if $addr->{family} ne "inet6";
+      # ignore temporary ipv6 addresses (privacy extensions)
+      next if $addr->{temporary};
+
+      my $ip = $addr->{local};
+      my $length = $addr->{prefixlen};
+      my $id_length = 128 - $length;
+
+      my $prefix = ip_to_prefix($ip, $length);
+      # Append brackets unless we have a host address without network
+      $prefix .= "::" unless $length == 128;
+
+      my $raw_suffix = raw_suffix_from_ip $ip, $id_length;
+      my $suffix = ip_to_suffix $ip, $id_length;
+
+      my %addr_fields = %nic_fields;
+      $addr_fields{ip} = Net::IP::ip_compress_address $ip, 6;
+      $addr_fields{net} = $addr_fields{prefix} = Net::IP::ip_compress_address($prefix, 6) // $ip;
+
+      # avoid removing of short group if we're dealing with a suffix starting with zero
+      if (substr($raw_suffix, 0, 16) !~ /^[0]{16}/)
       {
-        my $mac = $1 if $1;
-        $mac //= "";
-
-        $line = shift;
-        return unless defined $line;
-
-        while ($line =~ /^ {4}/)
-        {
-          if ($line =~ /^ {4}inet\s/)
-          {
-            # noop
-            $line = shift;
-            return unless defined $line;
-
-            $line = shift if $line =~ /\ {7}valid_lft /; # kernel > 3.2
-            return unless defined $line;
-          }
-          elsif (my ($ip, $length, $scope) = $line =~ /^ {4}inet6 ($m_ip6)\/(\d+)\sscope\s($m_scope)/)
-          {
-            # ignore temporary ipv6 addresses (privacy extensions)
-            if ($line =~ /temporary/)
-            {
-              $line = shift;
-              return unless defined $line;
-              $line = shift
-                if (defined $line and $line =~ /^\ {7}valid_lft /);
-              return unless defined $line;
-              next;
-            }
-
-            my $id_length = 128 - $length;
-
-            my $prefix = ip_to_prefix($ip, $length);
-            # Append brackets unless we have a host address without network
-            $prefix .= "::" unless $length == 128;
-
-            my $raw_suffix = raw_suffix_from_ip $ip, $id_length;
-            my $suffix = ip_to_suffix $ip, $id_length;
-
-            my %row;
-            $row{ip} = Net::IP::ip_compress_address $ip, 6;
-            $row{prefix} = Net::IP::ip_compress_address($prefix, 6) // $ip;
-
-            # avoid removing of short group if we're dealing with a suffix starting with zero
-            if (substr($raw_suffix, 0, 16) !~ /^[0]{16}/)
-            {
-              $row{suffix} = ($suffix =~ s/^:://gr);
-            }
-            else
-            {
-              $row{suffix} = $suffix;
-            }
-
-            $row{length} = $length;
-            $row{scope} = $scope;
-            $row{mac} = $mac;
-            $row{nic} = $nic;
-            $row{linklocal} = ip_in_net "fe80::/10", "$ip/128";
-            $row{uniquelocal} = ip_in_net "fc00::/7", "$ip/128";
-
-            $line = shift;
-
-            if (defined $line and $line =~ /^\ {7}valid_lft /)
-            {
-              my ($valid, $preferred) = $line =~ /^\ {7}valid_lft (?:(\d+)sec) preferred_lft (?:(\d+)sec)/;
-              my $time = time;
-            
-              $row{valid} = $time + $valid if defined $valid;
-              $row{valid} //= "forever";
-              $row{valleft} = $valid // "forever";
- 
-              $row{preferred} = $time + $preferred if defined $preferred;
-              $row{preferred} //= "forever";
-              $row{prefleft} = $preferred // "forever";
-
-              $line = shift;
-            }
-
-            push @out, \%row if not $nic =~ /^docker|^veth/ and
-               (keys %{ $opt{interface} } == 0 or exists $opt{interface}->{$nic})
-            ;
-
-            return unless defined $line;
-          }
-          else
-          {
-            warn "parse error, unknown address family: $line\n";
-            $line = shift;
-            return unless defined $line;
-          }
-        }
-      }
-      elsif ($line =~ /^ {4}link\/(loopback|ppp|none|sit) /)
-      {
-        # loopback -> ignore because lo is often handled specially
-        # ppp* -> ignore because dynamic
-        # sit -> ignore because it only contains information about
-        #  tunnel endpoints, used information are parsed above
-        # tun* is shown as link/none -> ignore because dynamic
-        do { $line = shift; return unless defined $line; } while $line =~ /^ {4}/;
+        $addr_fields{iid} = ($suffix =~ s/^:://gr);
       }
       else
       {
-         warn "parse error, unknown link: $line\n";
-         $line = shift;
-         return unless defined $line;
+        $addr_fields{iid} = $suffix;
       }
-    }
-    else {
-      warn "parse error, unknown interface: $line\n";
-      $line = shift;
-      return unless defined $line;
+      $addr_fields{suffix} = $addr_fields{iid};
+
+      $addr_fields{bits} = $addr_fields{length} = $length;
+      $addr_fields{scope} = $addr->{scope};
+      my $linklocal = ip_in_net "fe80::/10", "$ip/128";
+      my $uniquelocal = ip_in_net "fc00::/7", "$ip/128";
+
+      my $time = time;
+    
+      $addr_fields{valid} = $time + $addr->{valid_life_time} if defined $addr->{valid_life_time};
+      $addr_fields{valid} //= "forever";
+      $addr_fields{valleft} = $addr->{valid_life_time} // "forever";
+
+      $addr_fields{preferred} = $time + $addr if defined $addr->{preferred_life_time};
+      $addr_fields{preferred} //= "forever";
+      $addr_fields{prefleft} = $addr->{preferred_life_time} // "forever";
+
+      # default to global scope as wanted by rfc
+      my $global = 1;
+      $global = 0 if $linklocal or $uniquelocal;
+
+      if ($opt{lan} and !defined $lan_interfaces{$addr_fields{nic}})
+      {
+        next;
+      }
+ 
+      if ($opt{wan} and defined $lan_interfaces{$addr_fields{nic}})
+      {
+        next;
+      }
+
+      next if $global and !$opt{global};
+      next if $linklocal and !$opt{linklocal};
+      next if $uniquelocal and !$opt{uniquelocal};
+
+      push @out, grep s{\w+}{$addr_fields{$&} // $&}eg, "$opt{format}";
     }
   }
 }
 
-parse split /\n/, qx(/sbin/ip address show up);
+@out = sort +uniq @out;
 
-my $out = 0;
-for my $ip (@out)
-{
-  my $output = "$opt{format}\n";
-  my $global = 0;
-  my $linklocal = 0;
-  my $uniquelocal = 0;
+print $opt{nonl} ? "@out": map "$_\n", @out unless $opt{quiet};
 
-  $ip->{linklocal} and $linklocal = 1;
-  delete $ip->{linklocal};
-  $ip->{uniquelocal} and $uniquelocal = 1;
-  delete $ip->{uniquelocal};
-
-  # default to global scope as wanted by rfc
-  $global = 1 unless $linklocal or $uniquelocal;
-
-  if ($opt{lan} and !defined $lan_interfaces{$ip->{nic}})
-  {
-    next;
-  }
-
-  if ($opt{wan} and defined $lan_interfaces{$ip->{nic}})
-  {
-    next;
-  }
-
-  for my $field (sort keys %{ $ip })
-  {
-    next unless defined $ip->{$field};
-    $output =~ s/$field/$ip->{$field}/g;
-  }
-
-  next if $global and !$opt{global};
-  next if $linklocal and !$opt{linklocal};
-  next if $uniquelocal and !$opt{uniquelocal};
-
-  print $output unless $opt{quiet};
-  $out++;
-}
-
-exit 1 unless $out;
+exit !@out;

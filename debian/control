@@ -8,7 +8,8 @@ Homepage: https://it.stsbl.de
 
 Package: stsbl-iserv-config-ipv6
 Architecture: all
-Depends: dnsutils,
+Depends: bind9-dnsutils | dnsutils,
+         iproute2,
          ipv6chdetectd,
          isc-dhcp-client,
          iserv-config,
@@ -16,10 +17,12 @@ Depends: dnsutils,
          iserv-transition (<< 10:0) | radvdump,
          iserv-update,
          libiserv-dialog-perl,
+         libjson-perl,
          liblist-moreutils-perl,
          libnet-ip-perl,
          libpath-tiny-perl,
          libregexp-ipv6-perl,
+         libtie-ixhash-perl,
          rdnssd,
          wide-dhcpv6-client,
          ${misc:Depends},
