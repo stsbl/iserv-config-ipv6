@@ -155,7 +155,10 @@ sub parse(@)
 
             my $id_length = 128 - $length;
 
-            my $prefix = ip_to_prefix($ip, $length) . "::";
+            my $prefix = ip_to_prefix($ip, $length);
+            # Append brackets unless we have a host address without network
+            $prefix .= "::" unless $length == 128;
+
             my $raw_suffix = raw_suffix_from_ip $ip, $id_length;
             my $suffix = ip_to_suffix $ip, $id_length;
 
