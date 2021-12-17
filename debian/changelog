@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (21.12.18.1) stable; urgency=medium
+
+  * Netquery6: Fixed bug when only having address without prefix
+  * Netquery6: Ported to JSON interface of `ip addr`
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Sat, 18 Dec 2021 00:55:39 +0100
+
 stsbl-iserv-config-ipv6 (21.08.17.1) stable; urgency=medium
 
   * Ferm: Removed sending rejects, drop instead
