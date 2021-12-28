@@ -14,10 +14,40 @@ Insert "/etc/network/interfaces"
 
 Touch /var/lib/iserv/config/ipv6-{dhcp,delegation}-interfaces.list
 
-Test "init ipv6 prefix configuration"
-  [ -f "/etc/iserv/dhcpv6-prefix" ]
+Test "migrate ipv6 dhcp prefix configuration"
+  ! [ -f "/etc/iserv/dhcpv6-prefix" ]
   ---
-  echo 62 > /etc/iserv/dhcpv6-prefix
+  set -e
+  INTERFACE="$(head -n 1 /var/lib/iserv/config/ipv6-dhcp-interfaces.list)"
+  if [ -n "$INTERFACE" ]
+  then
+    mkdir -p /var/lib/iserv/config-ipv6/wide-dhcpv6-client
+    sed -i "/^iface $INTERFACE inet6 manual\$/a\\
+  $(echo -n "\t")wide-dhcpv6-sla-len $(cat "/etc/iserv/dhcpv6-prefix")" /etc/network/interfaces.d/ipv6
+    mv /etc/iserv/dhcpv6-prefix "/var/lib/iserv/config-ipv6/wide-dhcpv6-client/$INTERFACE.sla-len"
+  else
+    rm -f /etc/iserv/dhcpv6-prefix
+  fi
+
+Test "add ifid and sla-id to all delegation interfaces"
+  grep -qx 20config-ipv6_delg_ifid_sla-id /var/lib/iserv/config/update.log
+  ---
+  set -e
+
+  i=0
+  for IF in $(cat /var/lib/iserv/config/ipv6-delegation-interfaces.list)
+  do
+    mkdir -p /var/lib/iserv/config-ipv6/wide-dhcpv6-client
+    [ -n "$IF" ] || continue
+    sed -i "/^iface $IF inet6 manual\$/a\\
+  $(echo -n "\t")wide-dhcpv6-sla-id $i" /etc/network/interfaces.d/ipv6
+    echo "$i" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/$INTERFACE.sla-id
+    sed -i "/^iface $IF inet6 manual\$/a\\
+  $(echo -n "\t")wide-dhcpv6-ifid 1" /etc/network/interfaces.d/ipv6
+    echo 1 > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/$INTERFACE.ifid
+    let i++ || true
+  done
+  echo 20config-ipv6_delg_ifid_sla-id >> /var/lib/iserv/config/update.log
 
 Check /etc/network/if-up.d/zzz_iserv-ipv6
 ChPerm 0755 root:root /etc/network/if-up.d/zzz_iserv-ipv6

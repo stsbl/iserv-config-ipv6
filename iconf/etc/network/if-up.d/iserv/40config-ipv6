@@ -1,14 +1,48 @@
 # check config of wide dhcp client
 if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
 then
-  if [ -f "/etc/default/wide-dhcpv6-client" ]
+  # update wide dhcpv6 client configuration if neccessary
+  if [ "$METHOD" = "manual" ] &&
+      (grep -qx "$IFACE" /var/lib/iserv/config/ipv6-delegation-interfaces.list ||
+      grep -qx "$IFACE" /var/lib/iserv/config/ipv6-dhcp-interfaces.list)
   then
-    iconf repair /etc/default/wide-dhcpv6-client || true
-  fi
 
-  if [ -f "/etc/wide-dhcpv6/dhcp6c.conf" ]
-  then
-    iconf repair /etc/wide-dhcpv6/dhcp6c.conf || true
+    if [ -n "$IF_WIDE_DHCPV6_IFID" ] || [ -n "$IF_WIDE_DHCPV6_SLA_ID" ] ||
+       [ -n "$IF_WIDE_DHCPV6_SLA_LEN" ]
+    then
+      mkdir -p /var/lib/iserv/config-ipv6/wide-dhcpv6-client
+    fi
+
+    if [ -n "$IF_WIDE_DHCPV6_IFID" ]
+    then
+      echo "$IF_WIDE_DHCPV6_IFID" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".ifid
+    else
+      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".ifid
+    fi
+
+    if [ -n "$IF_WIDE_DHCPV6_SLA_ID" ]
+    then
+      echo "$IF_WIDE_DHCPV6_SLA_ID" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-id
+    else
+      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-id
+    fi
+
+    if [ -n "$IF_WIDE_DHCPV6_SLA_LEN" ]
+    then
+      echo "$IF_WIDE_DHCPV6_SLA_LEN" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-len
+    else
+      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-len
+    fi
+
+    if [ -f "/etc/default/wide-dhcpv6-client" ]
+    then
+      iconf repair /etc/default/wide-dhcpv6-client || true
+    fi
+
+    if [ -f "/etc/wide-dhcpv6/dhcp6c.conf" ]
+    then
+      iconf repair /etc/wide-dhcpv6/dhcp6c.conf || true
+    fi
   fi
 
   # accept route advertisements for other subnets

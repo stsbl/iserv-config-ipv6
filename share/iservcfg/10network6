@@ -514,14 +514,27 @@ while (1)
         {
           my %mask;
           tie %mask, "Tie::IxHash";
-          if ($def{_method} eq "static")
+
+	  if ($def{_method} eq "static")
           {
             $mask{"address"} = qr/^$mask_ip$/;
             $mask{"gateway"} = qr/^$mask_ip?$/;
             $mask{"dns-nameservers"} = qr/^$mask_ips?$/;
             $mask{"netmask"} = qr/^$mask_netmask?$/;
           }
-          if ($if =~ /^(wlan|wl)/)
+
+          if ($def{_method} eq "delg")
+          {
+            $mask{"wide-dhcpv6-ifid"} = qr/[a-fA-F0-9]{1,64}/;
+            $mask{"wide-dhcpv6-sla-id"} = qr/[a-fA-F0-9]/;
+          }
+
+	  if ($def{_method} eq "widedhcp")
+          {
+            $mask{"wide-dhcpv6-sla-len"} = qr/[0-9]+/;
+          }
+
+	  if ($if =~ /^(wlan|wl)/)
           {
             $mask{"wpa-ssid"} = qr/.+/;
             $mask{"wpa-psk"} = qr/.+/;

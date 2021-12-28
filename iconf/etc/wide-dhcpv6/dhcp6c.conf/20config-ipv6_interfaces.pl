@@ -11,20 +11,15 @@ my $fn_delegation_interface = "/var/lib/iserv/config/ipv6-delegation-interfaces.
 
 my $prefix_len = 62;
 
-if (-f $fn_prefix)
-{
-  $prefix_len = path($fn_prefix)->slurp_utf8;
-  chomp $prefix_len;
-}
-
 my @interfaces = uniq map { chomp $_; $_; }
     path($fn_request_interface)->lines_utf8;
+exit 0 unless @interfaces;
 
-for (@interfaces)
-{
-  print <<EOT;
-interface $_ {
+my $upstream_interface = shift @interfaces;
+print <<EOT;
+interface $upstream_interface {
 	send ia-pd 0;
+	send ia-na 0;
 	send rapid-commit;
 
 	request domain-name-servers;
@@ -33,31 +28,56 @@ interface $_ {
 	script "/etc/wide-dhcpv6/dhcp6c-script";
 };
 
+id-assoc na 0 {
+};
+
 EOT
-}
 
 my @delegation_interfaces = uniq map { chomp $_; $_; }
     path($fn_delegation_interface)->lines_utf8;
 
-if (@interfaces and @delegation_interfaces)
+if ($upstream_interface and @delegation_interfaces)
 {
+  my $fn_sla_len = "/var/lib/iserv/config-ipv6/wide-dhcpv6-client/$upstream_interface.sla-len";
+  if (-f $fn_sla_len)
+  {
+    $prefix_len = path($fn_sla_len)->slurp_utf8;
+    chomp $prefix_len;
+  }
+
   print <<EOT;
 id-assoc pd 0 {
 	prefix ::/$prefix_len infinity;
 EOT
 
-  my $id = 0;
   for (@delegation_interfaces)
   {
+    my $fn_sla_id = "/var/lib/iserv/config-ipv6/wide-dhcpv6-client/$_.sla-id";
+    my $fn_ifid = "/var/lib/iserv/config-ipv6/wide-dhcpv6-client/$_.ifid";
+
+    -f $fn_sla_id or next;
+    my $sla_id = path($fn_sla_id)->slurp_utf8;
+    chomp $sla_id;
+
     my $len = 128 - 64 - $prefix_len;
     print <<EOT;
 	prefix-interface $_ {
-		sla-id $id;
+		sla-id $sla_id;
 		sla-len $len;
+EOT
+    if (-f $fn_ifid)
+    {
+      my $ifid = path($fn_ifid)->slurp_utf8;
+      chomp $ifid;
+      $ifid = hex($ifid) or die "hex ifid: $!\n";
+      print <<EOT;
+		ifid $ifid;
+EOT
+    }
+    print <<EOT
 	};
 EOT
-    $id++;
   }
-  
+
   print "};\n\n"
 }
