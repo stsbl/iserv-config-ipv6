@@ -274,14 +274,57 @@ sub system_v(@)
   system @_;
 }
 
-sub menu_method(;$)
-{
-  my ($sel) = @_;
-  menu "Method", $sel, "static" => "statisch", "auto" => "Automatisch",
-    "dhcp" => "DHCP", "widedhcp" => "DHCP mit Präfix", "delg" => "Präfix-Deligierung";
-}
-
 my %conf = %{( ifs_parse )};
+
+sub menu_method($;$)
+{
+  my ($if, $sel) = @_;
+  my $method = $sel;
+
+  my $new_method;
+  while (not defined $new_method)
+  {
+    $new_method = menu "Method", $sel, "static" => "statisch", "auto" => "Automatisch",
+      "dhcp" => "DHCP", "widedhcp" => "DHCP mit Präfix", "delg" => "Präfix-Deligierung";
+    last if not defined $new_method;
+
+    my $widedhcp_if;
+
+    IF:
+    for my $if (keys %conf)
+    {
+      for (@{ $conf{$if} })
+      {
+        if ($_->{_method} eq "widedhcp")
+        {
+          $widedhcp_if = $if;
+          last IF;
+        }
+      }
+    }
+
+    if ($new_method eq "widedhcp")
+    {
+      if (defined $widedhcp_if and $widedhcp_if ne $if)
+      {
+        msgbox "DHCP mit Präfix ist bereits auf Schnittstelle $widedhcp_if konfiguriert.";
+        undef $new_method;
+        next;
+      }
+    }
+    elsif ($new_method eq "delg")
+    {
+      unless (defined $widedhcp_if)
+      {
+        msgbox "Präfix-Delegierung benötigt eine Schnittstelle, die für \"DHCP mit Präfix\" konfiguriert ist.";
+        undef $new_method;
+      }
+    }
+    $method = $new_method;
+  }
+
+  $method;
+}
 
 if (-f $fn_dhcp)
 {
@@ -356,9 +399,9 @@ while (1)
     print "write $cfg\n";
     ifs_write %changes;
     print "write $fn_dhcp\n";
-    path($fn_dhcp)->spew_utf8(join "\n", sort keys %dhcp_interfaces);
+    path($fn_dhcp)->spew_utf8(join("\n", sort keys %dhcp_interfaces) . "\n");
     print "write $fn_delegation\n";
-    path($fn_delegation)->spew_utf8(join "\n", sort keys %delegation_interfaces);
+    path($fn_delegation)->spew_utf8(join("\n", sort keys %delegation_interfaces) ."\n");
     if (!keys %dhcp_interfaces)
     {
       # stop wide if no dhcp interfaces are configured
@@ -413,7 +456,7 @@ while (1)
         $if = inputbox "Interface" or next;
       }
 
-      my $method = menu_method;
+      my $method = menu_method $if;
       next unless defined $method;
 
       $new_stanza = ();
@@ -533,9 +576,12 @@ while (1)
               }
             }
             # store values
-            # outside brackets creates a secondary hash reference with values
-            # of the inner hash reference
-            $conf{$if}[$stanza_key] = { %{ $def[$stanza_key] = \%def } };
+            undef $conf{$if}[$stanza_key];
+            $conf{$if}[$stanza_key]{$_} = $def{$_} for keys %def;
+
+            undef $def[$stanza_key];
+            $def[$stanza_key]{$_} = $def{$_} for keys %def;
+
             # handle automagically methods (widedhcp and delg)
             if ($conf{$if}[$stanza_key]{_method} eq "widedhcp")
             {
@@ -554,6 +600,7 @@ while (1)
 
               delete $dhcp_interfaces{$if} unless $dhcp_found;
             }
+
             if ($conf{$if}[$stanza_key]{_method} eq "delg")
             {
               $delegation_interfaces{$if} = 1;
@@ -582,7 +629,7 @@ while (1)
 
             # copy current config to defintion to ensure correct displaying
             # (e.g. manual + delg => delg instead of manual as method)
-	    $def[$stanza_key] = { %{ $conf{$if}[$stanza_key] } };
+            $def[$stanza_key] = { %{ $conf{$if}[$stanza_key] } };
             last;
           }
           elsif ($attr eq "status")
@@ -607,7 +654,7 @@ while (1)
           }
           elsif ($attr eq "method")
           {
-            my $method = menu_method $def{"_method"};
+            my $method = menu_method $if, $def{"_method"};
             next unless defined $method;
             $def{"_method"} = $method;
             if ($method eq "dhcp")
