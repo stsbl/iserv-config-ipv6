@@ -41,10 +41,10 @@ Test "add ifid and sla-id to all delegation interfaces"
     [ -n "$IF" ] || continue
     sed -i "/^iface $IF inet6 manual\$/a\\
   $(echo -n "\t")wide-dhcpv6-sla-id $i" /etc/network/interfaces.d/ipv6
-    echo "$i" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/$INTERFACE.sla-id
+    echo "$i" > "/var/lib/iserv/config-ipv6/wide-dhcpv6-client/$IF.sla-id"
     sed -i "/^iface $IF inet6 manual\$/a\\
   $(echo -n "\t")wide-dhcpv6-ifid 1" /etc/network/interfaces.d/ipv6
-    echo 1 > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/$INTERFACE.ifid
+    echo 1 > "/var/lib/iserv/config-ipv6/wide-dhcpv6-client/$IF.ifid"
     let i++ || true
   done
   echo 20config-ipv6_delg_ifid_sla-id >> /var/lib/iserv/config/update.log
