@@ -128,13 +128,12 @@ my $data = decode_json qx(/sbin/ip --json address show up);
 for my $row (@{$data})
 {
   # loopback -> ignore because lo is often handled specially
-  # ppp* -> ignore because dynamic
   # sit -> ignore because it only contains information about tunnel endpoints
   # tun* is shown as link/none -> ignore because dynamic
   # docker*/veth* -> ignore because Docker is out of scope for IPv6 at now
   unless (
       !defined $row->{ifname} or
-      ($row->{link_type} =~ /^(loopback|ppp|none|sit)$/) or
+      ($row->{link_type} =~ /^(loopback|none|sit)$/) or
       $row->{ifname} =~ /^docker|^veth/ or
       (keys %{ $opt{interface} } != 0 and not exists $opt{interface}->{$row->{ifname}}))
   {
