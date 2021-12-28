@@ -11,18 +11,13 @@ my $fn_delegation_interface = "/var/lib/iserv/config/ipv6-delegation-interfaces.
 
 my $prefix_len = 62;
 
-if (-r $fn_prefix)
+if (-f $fn_prefix)
 {
-  my $prefix_len = path($fn_prefix)->slurp_utf8;
+  $prefix_len = path($fn_prefix)->slurp_utf8;
   chomp $prefix_len;
 }
 
-my @nics = split /\n/, qx(netquery6 nic);
-pop @nics;
-
-my %nics = map { $_ => 1 } @nics;
-
-my @interfaces = uniq grep { exists $nics{$_} } map { chomp $_; $_; }
+my @interfaces = uniq map { chomp $_; $_; }
     path($fn_request_interface)->lines_utf8;
 
 for (@interfaces)
@@ -41,8 +36,8 @@ interface $_ {
 EOT
 }
 
-my @delegation_interfaces = uniq grep { exists $nics{$_} }
-    map { chomp $_; $_; } path($fn_delegation_interface)->lines_utf8;
+my @delegation_interfaces = uniq map { chomp $_; $_; }
+    path($fn_delegation_interface)->lines_utf8;
 
 if (@interfaces and @delegation_interfaces)
 {
