@@ -1,3 +1,18 @@
+stsbl-iserv-config-ipv6 (21.12.28.1) stable; urgency=medium
+
+  * dhcp6c.conf: Removed dependency of config content to configured
+    network interfaces, fixed reading configured prefix length
+  * iservchk network: Moved killing temporary addresses from ipv6-support
+  * sysctl.conf: Never add temporary addresses to WAN interfaces
+  * netquery6: Do not hide ppp interfaces anymore as their are relevant in
+    case of DSL providing internet access
+  * iservcfg network6: Fixed issues with configuring widedhcp or delg
+    methods
+  * WIDE DHCPv6: sla-len and sla-id will be now configured via
+    /etc/network/interfaces, added ifid support
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Tue, 28 Dec 2021 05:22:25 +0100
+
 stsbl-iserv-config-ipv6 (21.12.18.1) stable; urgency=medium
 
   * Netquery6: Fixed bug when only having address without prefix
