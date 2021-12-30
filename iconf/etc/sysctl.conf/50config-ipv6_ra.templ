@@ -1,8 +1,15 @@
-# Accept route announcements for other subnets
-$(for nic in $(netquery6 nic | sort | uniq | sed 's#\.#/#g')
+# Accept route advertisements including for other subnets if enabled on interface
+$(for nic in /var/lib/iserv/config-ipv6/accept_ra/*
 do
-  echo "net.ipv6.conf.$nic.accept_ra_rt_info_max_plen = 128"
+  [ -f "$nic" ] || continue
+  value="$(cat "$nic")"
+  nic="$(basename "$nic")"
+  if [ "$value" = "1" ] || [ "$value" = "2" ]
+  then
+    echo "net.ipv6.conf.$nic.accept_ra_rt_info_max_plen = 128"
+    echo "net.ipv6.conf.$nic.accept_ra = $value"
+  else
+    echo "net.ipv6.conf.$nic.accept_ra = 0"
+  fi
 done)
-net.ipv6.conf.default.accept_ra_rt_info_max_plen = 128
-net.ipv6.conf.all.accept_ra_rt_info_max_plen = 128
 

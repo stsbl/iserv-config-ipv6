@@ -1,4 +1,4 @@
-# check config of wide dhcp client
+# check config of WIDE DHCPv6 client and accept_ra
 if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
 then
   # update wide dhcpv6 client configuration if neccessary
@@ -45,8 +45,26 @@ then
     fi
   fi
 
-  # accept route advertisements for other subnets
-  [ -f /proc/sys/net/ipv6/conf/"$IFACE"/accept_ra_rt_info_max_plen ] &&
-    echo 128 > /proc/sys/net/ipv6/conf/"$IFACE"/accept_ra_rt_info_max_plen
+  mkdir -p /var/lib/iserv/config-ipv6/accept_ra
+  ACCEPT_RA_MARKER_FILE="/var/lib/iserv/config-ipv6/accept_ra/$IFACE"
+
+  # Configured explicitly
+  if [ -n "$IF_ACCEPT_RA" ]
+  then
+    echo "$IF_ACCEPT_RA" > "$ACCEPT_RA_MARKER_FILE"
+  # Needs RA for default gateway and probably IP address
+  elif [ "$METHOD" = "auto" ] || [ "$METHOD" = "dhcp" ]
+  then
+    echo 2 > "$ACCEPT_RA_MARKER_FILE"
+  # Needs RA for default gateway and probably IP address
+  elif grep -qx "$IFACE" /var/lib/iserv/config/ipv6-dhcp-interfaces.list
+  then
+    echo 2 > "$ACCEPT_RA_MARKER_FILE"
+  # Deactivate otherwhise
+  else
+    echo 0 > "$ACCEPT_RA_MARKER_FILE"
+  fi
+  iconf repair /etc/sysctl.conf || true
+  sysctl -p -q || true
 fi
 

@@ -2,6 +2,31 @@ MkDir 0755 root:root /etc/network/interfaces.d
 Touch /etc/network/interfaces.d/ipv6
 ChPerm 0644 root:root /etc/network/interfaces.d/ipv6
 
+MkDir 0755 root:root /var/lib/iserv/config-ipv6
+MkDir 0755 root:root /var/lib/iserv/config-ipv6/wide-dhcpv6-client
+MkDir 0755 root:root /var/lib/iserv/config-ipv6/accept_ra
+
+Test "import accept_ra"
+  grep -qx 20config-ipv6_accept-ra /var/lib/iserv/config/update.log
+  ---
+  set -e
+  shopt -s nullglob
+  if [ -s "/etc/network/interfaces.d/ipv6" ]
+  then
+    for i in /proc/sys/net/ipv6/conf/*/accept_ra
+    do
+      [ -f "$i" ] || continue
+      if="$(basename "$(dirname "$i")")"
+      { ! [  "$if" = "all" ] && ! [ "$if" = "default" ] && ! [[ $if =~ veth* ]] &&
+          ! [[ $if =~ docker* ]] && ! [ "$if" = "lo" ] && ! [[ $if =~ tun* ]] &&
+          ! [[ $if =~ nat64 ]]; } ||
+          continue
+      cat "$i" > "/var/lib/iserv/config-ipv6/accept_ra/$if"
+    done
+  fi
+
+  echo 20config-ipv6_accept-ra >> /var/lib/iserv/config/update.log
+
 Test "fix multiple source-directory in /etc/network/interfaces"
   grep -qx 20config-ipv6_source-directory /var/lib/iserv/config/update.log
   ---
@@ -51,4 +76,7 @@ Test "add ifid and sla-id to all delegation interfaces"
 
 Check /etc/network/if-up.d/zzz_iserv-ipv6
 ChPerm 0755 root:root /etc/network/if-up.d/zzz_iserv-ipv6
+
+Check /etc/network/if-down.d/iserv-ipv6
+ChPerm 0755 root:root /etc/network/if-down.d/iserv-ipv6
 
