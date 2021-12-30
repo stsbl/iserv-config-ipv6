@@ -4,6 +4,7 @@ do
   [ -f "$nic" ] || continue
   value="$(cat "$nic")"
   nic="$(basename "$nic")"
+  nic="${nic/\./\/}"
   if [ "$value" = "1" ] || [ "$value" = "2" ]
   then
     echo "net.ipv6.conf.$nic.accept_ra_rt_info_max_plen = 128"
