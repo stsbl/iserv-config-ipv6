@@ -4,6 +4,7 @@ do
   [ -f "$nic" ] || continue
   value="$(cat "$nic")"
   nic="$(basename "$nic")"
+  [ -e "/sys/class/net/$nic" ] || continue
   nic="${nic/\./\/}"
   if [ "$value" = "1" ] || [ "$value" = "2" ]
   then

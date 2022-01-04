@@ -34,6 +34,13 @@ then
       rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-len
     fi
 
+    if [ -n "$IF_WIDE_DHCPV6_REQUEST_NA" ]
+    then
+      echo "$IF_WIDE_DHCPV6_REQUEST_NA" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".request-na
+    else
+      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".request-na
+    fi
+
     if [ -f "/etc/default/wide-dhcpv6-client" ]
     then
       iconf repair /etc/default/wide-dhcpv6-client || true
@@ -64,6 +71,22 @@ then
   else
     echo 0 > "$ACCEPT_RA_MARKER_FILE"
   fi
+
+  # Wait some times, some (virtual) NICs are not directly showing up in
+  # /proc/sys which causes sysctl to spew a wall of warnings.
+  echo -n "Waiting for NIC to be available in /proc/sys... "
+  for in $(seq 1 10000)
+  do
+    [ -e "/proc/sys/net/ipv6/conf/$IFACE" ] && break
+    sleep 0.1
+  done
+  if [ -e "/proc/sys/net/ipv6/conf/$IFACE" ]
+  then
+    echo "Done."
+  else
+    echo "Failed."
+  fi
+
   iconf repair /etc/sysctl.conf || true
   sysctl -p -q || true
 fi

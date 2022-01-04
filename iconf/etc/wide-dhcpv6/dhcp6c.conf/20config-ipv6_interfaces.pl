@@ -16,10 +16,20 @@ my @interfaces = uniq map { chomp $_; $_; }
 exit 0 unless @interfaces;
 
 my $upstream_interface = shift @interfaces;
+
+my $request_na = 1;
+my $fn_request_na = "/var/lib/iserv/config-ipv6/wide-dhcpv6-client/$upstream_interface.request-na";
+if (-f $fn_request_na)
+{
+  $request_na = path($fn_request_na)->slurp_utf8;
+  $request_na = int $request_na;
+}
+
+$send_ia_na = $request_na ? "\n\tsend ia-na 0;\n" : "";
+
 print <<EOT;
 interface $upstream_interface {
-	send ia-pd 0;
-	send ia-na 0;
+	send ia-pd 0;$send_ia_na
 	send rapid-commit;
 
 	request domain-name-servers;
@@ -28,6 +38,9 @@ interface $upstream_interface {
 	script "/etc/wide-dhcpv6/dhcp6c-script";
 };
 
+EOT
+
+print <<EOT if $request_na;
 id-assoc na 0 {
 };
 
