@@ -25,7 +25,7 @@ if (-f $fn_request_na)
   $request_na = int $request_na;
 }
 
-$send_ia_na = $request_na ? "\n\tsend ia-na 0;\n" : "";
+my $send_ia_na = $request_na ? "\n\tsend ia-na 0;" : "";
 
 print <<EOT;
 interface $upstream_interface {
