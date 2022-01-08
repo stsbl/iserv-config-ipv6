@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (22.01.08.1) stable; urgency=medium
+
+  * ifup hook: Fixed typo
+  *ddhcp6c.conf: Fixed check for succesful de-hexify of ifid
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Sat, 08 Jan 2022 20:36:47 +0100
+
 stsbl-iserv-config-ipv6 (22.01.07.3) stable; urgency=medium
 
   * dhcp6c: Added missing hex for sla-id
