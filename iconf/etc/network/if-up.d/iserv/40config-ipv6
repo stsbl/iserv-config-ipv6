@@ -75,7 +75,7 @@ then
   # Wait some times, some (virtual) NICs are not directly showing up in
   # /proc/sys which causes sysctl to spew a wall of warnings.
   echo -n "Waiting for NIC to be available in /proc/sys... "
-  for in $(seq 1 10000)
+  for i in $(seq 1 10000)
   do
     [ -e "/proc/sys/net/ipv6/conf/$IFACE" ] && break
     sleep 0.1
