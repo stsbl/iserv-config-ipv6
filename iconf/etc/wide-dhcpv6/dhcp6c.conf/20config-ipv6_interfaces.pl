@@ -71,7 +71,8 @@ EOT
     -f $fn_sla_id or next;
     my $sla_id = path($fn_sla_id)->slurp_utf8;
     chomp $sla_id;
-    $sla_id = hex($sla_id) or die "hex sla_id: $!\n";
+    $sla_id = hex($sla_id);
+    die "hex sla_id: $!\n" unless defined $sla_id;
 
     my $len = 128 - 64 - $prefix_len;
     print <<EOT;
