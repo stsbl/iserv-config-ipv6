@@ -3,7 +3,7 @@
 
 # Interfaces on which the client should send DHCPv6 requests and listen to
 # answers. If empty, the client is deactivated.
-INTERFACES="$(netquery6 --format nic | grep "$(cat /var/lib/iserv/config/ipv6-dhcp-interfaces.list)" | uniq | paste -sd " ")"
+INTERFACES="$(cat /var/lib/iserv/config/ipv6-dhcp-interfaces.list | uniq | paste -sd " ")"
 
 # Verbose level for syslog. Default is 0 (0: minimal; 1: info; 2: debug)
 VERBOSE=1
