@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (22.09.18.1) stable; urgency=medium
+
+  * /etc/default/wide-dhcpv6-client: Do not interfaces from running system
+    to ensure that wide-dhcpv6-client can be used with ppp interfaces
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Sun, 18 Sep 2022 00:14:11 +0200
+
 stsbl-iserv-config-ipv6 (22.01.08.1) stable; urgency=medium
 
   * ifup hook: Fixed typo
