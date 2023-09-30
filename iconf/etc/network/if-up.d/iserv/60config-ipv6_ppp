@@ -1,0 +1,44 @@
+# enable accept_ra for DSL interface
+if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet" ] && [ "$METHOD" = "ppp" ]
+then
+  # Wait some times, PPP interface does not show directly in
+  # /proc/sys which causes sysctl to spew a wall of warnings.
+  echo -n "Waiting for PPP interface $IFACE to be available in /proc/sys... "
+  for i in $(seq 1 100)
+  do
+    [ -e "/proc/sys/net/ipv6/conf/$IFACE" ] && break
+    sleep 0.1
+  done
+  if [ -e "/proc/sys/net/ipv6/conf/$IFACE" ]
+  then
+    echo "Done."
+  else
+    DSL_WAIT_FAILED=1
+    echo "Failed."
+  fi
+  # Re-try setting accept_ra flag in background, as setting synchronsly below
+  # probably will fail when we're timing out
+  if [ "$DSL_WAIT_FAILED" ]
+  then
+    (
+      while ! [ -e "/proc/sys/net/ipv6/conf/$IFACE" ]
+      do
+        DSL_WAITING=1
+        sleep 0.1
+      done
+      if [ "$DSL_WAITING" ]
+      then
+        echo 2 > "/proc/sys/net/ipv6/conf/$IFACE/accept_ra"
+        systemctl try-restart wide-dhcpv6-client
+      fi
+    ) &
+  fi
+
+  mkdir -p /var/lib/iserv/config-ipv6/accept_ra
+  ACCEPT_RA_MARKER_FILE="/var/lib/iserv/config-ipv6/accept_ra/$IFACE"
+  echo 2 > "$ACCEPT_RA_MARKER_FILE"
+  iconf repair /etc/sysctl.conf || true
+  sysctl -p -q || true
+  systemctl try-restart wide-dhcpv6-client
+fi
+
