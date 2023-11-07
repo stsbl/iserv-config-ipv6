@@ -653,7 +653,9 @@ while (1)
             for my $i (0..$#def)
             {
               my %def = %{ $def[$i] };
-              $changes{$if} .= "iface $if $def{_family} $def{_method}\n".
+              my $method = $def{_method};
+              $method = "manual" if $method =~ /^(?:delg|widedhcp)$/;
+              $changes{$if} .= "iface $if $def{_family} $method\n".
               (join "", map "\t$_ $def{$_}\n", grep !/^_/, keys %def);
             }
 
