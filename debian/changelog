@@ -1,3 +1,14 @@
+stsbl-iserv-config-ipv6 (23.11.07.1) stable; urgency=medium
+
+  * Renamed locale templates
+  * Renamed pot files
+  * Updated .gitignore
+  * Added ifup hook to set accept_ra for PPP connections
+  * iservcfg network6: Fixed writing fake methods to
+    /etc/network/interfaces.d/ipv6
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Tue, 07 Nov 2023 11:36:32 +0100
+
 stsbl-iserv-config-ipv6 (22.09.18.1) stable; urgency=medium
 
   * /etc/default/wide-dhcpv6-client: Do not interfaces from running system
