@@ -1,2 +1,5 @@
+Check /etc/rdnssd/merge-hook
+ChPerm 0755 root:root /etc/rdnssd/merge-hook
+
 Start rdnssd
 

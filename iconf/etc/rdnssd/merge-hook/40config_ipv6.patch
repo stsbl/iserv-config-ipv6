@@ -1,0 +1,17 @@
+--- /etc/rdnssd/merge-hook	2019-01-13 21:41:06.000000000 +0100
++++ merge-hook	2025-08-13 14:44:26.402178924 +0200
+@@ -22,7 +22,13 @@
+ # Debian modification, use resolvconf if available
+ INPUT="/var/run/rdnssd/resolv.conf"
+ if [ -x /sbin/resolvconf ]; then
+-       /sbin/resolvconf -a 000.rdnssd < "$INPUT"
++       DEFIF="$(/usr/lib/iserv/ipv6_defif)"
++
++       if ! [ -n "$DEFIF" ]; then
++              exit 0
++       fi
++
++       /sbin/resolvconf -a "$DEFIF".rdnssd < "$INPUT"
+        exit 0
+ fi
+ 
