@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (25.08.14.1) stable; urgency=medium
+
+  * iservmake: Deactivated pootle download
+  * Fixed compatibility of rdnssd merge hook with systemd-resolved
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Thu, 14 Aug 2025 14:01:27 +0200
+
 stsbl-iserv-config-ipv6 (23.11.07.1) stable; urgency=medium
 
   * Renamed locale templates
