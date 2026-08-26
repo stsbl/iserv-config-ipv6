@@ -54,7 +54,15 @@ my $iservchk = 'iservchk/11network/20config-ipv6';
 open my $check_fh, '<', $iservchk or die $!;
 my $check_content = do { local $/; <$check_fh> };
 close $check_fh;
-like($check_content, qr{iserv-ipv6-import-wide-state}, 'iservchk invokes the legacy WIDE state importer');
-like($check_content, qr{20config-ipv6_import-wide-dhcpcd-state}, 'iservchk records the one-time state import');
+unlike($check_content, qr{iserv-ipv6-import-wide-state}, 'network checks do not import state after dhcpcd has run');
+
+my $dhcpcd_check = 'iservchk/11dhcpcd/20config-ipv6.sh';
+ok(-x $dhcpcd_check, 'dhcpcd check generator exists');
+open $check_fh, '<', $dhcpcd_check or die $!;
+$check_content = do { local $/; <$check_fh> };
+close $check_fh;
+like($check_content,
+    qr{\A#!/bin/sh\n\n/usr/lib/iserv/iserv-ipv6-import-wide-state\n\nif \[ -s},
+    'dhcpcd check generator imports the legacy WIDE state before generating checks');
 
 done_testing;
