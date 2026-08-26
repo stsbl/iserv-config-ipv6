@@ -1,79 +1,52 @@
-# check config of WIDE DHCPv6 client and accept_ra
+# Keep dhcpcd's prefix-delegation state in sync with interfaces(5).
+# The WIDE variable names remain accepted while existing configurations migrate.
 if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
 then
-  # update wide dhcpv6 client configuration if neccessary
   if [ "$METHOD" = "manual" ] &&
       (grep -qx "$IFACE" /var/lib/iserv/config/ipv6-delegation-interfaces.list ||
-      grep -qx "$IFACE" /var/lib/iserv/config/ipv6-dhcp-interfaces.list)
+       grep -qx "$IFACE" /var/lib/iserv/config/ipv6-dhcp-interfaces.list)
   then
+    state_dir=/var/lib/iserv/config-ipv6/dhcpcd
+    dhcpcd_ifid=${IF_DHCPCD_IFID:-${IF_WIDE_DHCPV6_IFID:-}}
+    dhcpcd_sla_id=${IF_DHCPCD_SLA_ID:-${IF_WIDE_DHCPV6_SLA_ID:-}}
+    dhcpcd_sla_len=${IF_DHCPCD_SLA_LEN:-${IF_WIDE_DHCPV6_SLA_LEN:-}}
+    dhcpcd_request_na=${IF_DHCPCD_REQUEST_NA:-${IF_WIDE_DHCPV6_REQUEST_NA:-}}
 
-    if [ -n "$IF_WIDE_DHCPV6_IFID" ] || [ -n "$IF_WIDE_DHCPV6_SLA_ID" ] ||
-       [ -n "$IF_WIDE_DHCPV6_SLA_LEN" ]
+    if [ -n "$dhcpcd_ifid$dhcpcd_sla_id$dhcpcd_sla_len$dhcpcd_request_na" ]
     then
-      mkdir -p /var/lib/iserv/config-ipv6/wide-dhcpv6-client
+      mkdir -p "$state_dir"
     fi
 
-    if [ -n "$IF_WIDE_DHCPV6_IFID" ]
-    then
-      echo "$IF_WIDE_DHCPV6_IFID" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".ifid
-    else
-      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".ifid
-    fi
+    for option in ifid sla-id sla-len request-na
+    do
+      eval value="\${dhcpcd_$(printf %s "$option" | tr - _)}"
+      if [ -n "$value" ]
+      then
+        printf '%s\n' "$value" > "$state_dir/$IFACE.$option"
+      else
+        rm -f "$state_dir/$IFACE.$option"
+      fi
+    done
 
-    if [ -n "$IF_WIDE_DHCPV6_SLA_ID" ]
-    then
-      echo "$IF_WIDE_DHCPV6_SLA_ID" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-id
-    else
-      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-id
-    fi
-
-    if [ -n "$IF_WIDE_DHCPV6_SLA_LEN" ]
-    then
-      echo "$IF_WIDE_DHCPV6_SLA_LEN" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-len
-    else
-      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".sla-len
-    fi
-
-    if [ -n "$IF_WIDE_DHCPV6_REQUEST_NA" ]
-    then
-      echo "$IF_WIDE_DHCPV6_REQUEST_NA" > /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".request-na
-    else
-      rm -f /var/lib/iserv/config-ipv6/wide-dhcpv6-client/"$IFACE".request-na
-    fi
-
-    if [ -f "/etc/default/wide-dhcpv6-client" ]
-    then
-      iconf repair /etc/default/wide-dhcpv6-client || true
-    fi
-
-    if [ -f "/etc/wide-dhcpv6/dhcp6c.conf" ]
-    then
-      iconf repair /etc/wide-dhcpv6/dhcp6c.conf || true
-    fi
+    iconf repair /etc/dhcpcd.conf || true
   fi
 
   mkdir -p /var/lib/iserv/config-ipv6/accept_ra
   ACCEPT_RA_MARKER_FILE="/var/lib/iserv/config-ipv6/accept_ra/$IFACE"
 
-  # Configured explicitly
   if [ -n "$IF_ACCEPT_RA" ]
   then
     echo "$IF_ACCEPT_RA" > "$ACCEPT_RA_MARKER_FILE"
-  # Needs RA for default gateway and probably IP address
   elif [ "$METHOD" = "auto" ] || [ "$METHOD" = "dhcp" ]
   then
     echo 2 > "$ACCEPT_RA_MARKER_FILE"
-  # Needs RA for default gateway and probably IP address
   elif grep -qx "$IFACE" /var/lib/iserv/config/ipv6-dhcp-interfaces.list
   then
     echo 2 > "$ACCEPT_RA_MARKER_FILE"
-  # Deactivate otherwhise
   else
     echo 0 > "$ACCEPT_RA_MARKER_FILE"
   fi
 
-  # Wait some times, some (virtual) NICs are not directly showing up in
-  # /proc/sys which causes sysctl to spew a wall of warnings.
   echo -n "Waiting for NIC to be available in /proc/sys... "
   for i in $(seq 1 10000)
   do
@@ -90,4 +63,3 @@ then
   iconf repair /etc/sysctl.conf || true
   sysctl -p -q || true
 fi
-

@@ -1,3 +1,0 @@
-#!/bin/sh
-
-/usr/lib/iserv/sleep_exec_once 3 reload_ferm6 systemctl reload ferm || true

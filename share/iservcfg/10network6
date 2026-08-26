@@ -437,14 +437,14 @@ while (1)
 
     if (!keys %dhcp_interfaces)
     {
-      # stop wide if no dhcp interfaces are configured
-      system_v "iservchk", "wide";
+      # stop dhcpcd if no DHCPv6 interfaces are configured
+      system_v "iservchk", "dhcpcd";
     }
 
     my @up = grep defined $changes{$_}, sort keys %changes;
     system_v "ifup", "--force", $_ for @up;
     my @services;
-    push @services, "wide";
+    push @services, "dhcpcd";
 
     my $want = {"apache" => "40apache", "bind" => "12bind", "dhcpd6" => "40dhcpd6",
       "defaults" => "90defaults", "network" => "11network", "radvd" => "40radvd", "squid" => "40squid"};
