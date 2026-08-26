@@ -20,5 +20,11 @@ open my $delegation, '>', "$config/ipv6-delegation-interfaces.list" or die $!;
 print {$delegation} "br100\n";
 close $delegation;
 is(system("./$tool", '--delegation-enabled') >> 8, 0, 'explicit DSL prefix request is exposed through the query utility');
+open my $length, '>', "$state/dsl.sla-len" or die $!;
+print {$length} "56\n";
+close $length;
+my $placeholder = qx(./$tool --placeholder 2003:a:838:8f17::);
+chomp $placeholder;
+is($placeholder, '$prefix$17::', 'placeholder retains only suffix bits after a /56 prefix');
 
 done_testing;
