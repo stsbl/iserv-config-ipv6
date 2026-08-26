@@ -4,6 +4,18 @@ set -e
 TITLE="DSL IPv6"
 DLG=(dialog --stdout --backtitle "IServ-Konfiguration > $TITLE")
 CONFIG=/var/lib/iserv/config/ipv6-dsl
+PEER=/etc/ppp/peers/dsl
+
+if [ ! -f "$PEER" ]
+then
+  "${DLG[@]}" --yesno "DSL ist nicht aktiviert. Aktivieren Sie zuerst die DSL-Einwahl in iservcfg dsl. Soll die DSL-Konfiguration jetzt geöffnet werden?" 0 0 || exit 0
+  iservcfg dsl
+  if [ ! -f "$PEER" ]
+  then
+    "${DLG[@]}" --msgbox "DSL ist weiterhin nicht aktiviert. IPv6 für DSL kann erst danach konfiguriert werden." 0 0
+    exit 0
+  fi
+fi
 
 ENABLED=0
 ADDRESS_TOKEN=::2
