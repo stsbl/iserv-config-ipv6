@@ -25,6 +25,21 @@ my %delegation_interfaces;
 $IServ::Dialog::backtitle = "IServ-Konfiguration > $TITLE";
 
 sub unique(@) { sort keys %{{map {($_, undef)} @_}} }
+
+sub canonical_dhcpv6_mode($)
+{
+  my ($mode) = @_;
+  return 'dhcpcd' if $mode eq 'widedhcp';
+  return 'dhcpcd-delegation' if $mode eq 'delg';
+  return $mode;
+}
+
+sub canonical_dhcpv6_option($)
+{
+  my ($option) = @_;
+  $option =~ s/^wide-dhcpv6-/dhcpcd-/;
+  return $option;
+}
 sub subtract(\@@) { my ($a, @b) = @_; grep {my $a = $_; !grep {$_ eq $a} @b;} @$a; }
 
 sub getproc(@)
@@ -159,10 +174,11 @@ sub ifs_parse()
       push @{ $conf{$if} }, $stanza;
 
       ($stanza->{_family}, $stanza->{_method}) = @v;
+      $stanza->{_method} = canonical_dhcpv6_mode($stanza->{_method});
     }
     elsif ($if and $stanza)
     {
-      $stanza->{$k} = "@v";
+      $stanza->{canonical_dhcpv6_option($k)} = "@v";
     }
   }
 
@@ -285,36 +301,36 @@ sub menu_method($;$)
   while (not defined $new_method)
   {
     $new_method = menu "Method", $sel, "static" => "statisch", "auto" => "Automatisch",
-      "dhcp" => "DHCP", "widedhcp" => "DHCP mit Präfix", "delg" => "Präfix-Deligierung";
+      "dhcp" => "DHCP", "dhcpcd" => "DHCP mit Präfix", "dhcpcd-delegation" => "Präfix-Deligierung";
     last if not defined $new_method;
 
-    my $widedhcp_if;
+    my $dhcpcd_if;
 
     IF:
     for my $if (keys %conf)
     {
       for (@{ $conf{$if} })
       {
-        if ($_->{_method} eq "widedhcp")
+        if ($_->{_method} eq "dhcpcd")
         {
-          $widedhcp_if = $if;
+          $dhcpcd_if = $if;
           last IF;
         }
       }
     }
 
-    if ($new_method eq "widedhcp")
+    if ($new_method eq "dhcpcd")
     {
-      if (defined $widedhcp_if and $widedhcp_if ne $if)
+      if (defined $dhcpcd_if and $dhcpcd_if ne $if)
       {
-        msgbox "DHCP mit Präfix ist bereits auf Schnittstelle $widedhcp_if konfiguriert.";
+        msgbox "DHCP mit Präfix ist bereits auf Schnittstelle $dhcpcd_if konfiguriert.";
         undef $new_method;
         next;
       }
     }
-    elsif ($new_method eq "delg")
+    elsif ($new_method eq "dhcpcd-delegation")
     {
-      unless (defined $widedhcp_if)
+      unless (defined $dhcpcd_if)
       {
         msgbox "Präfix-Delegierung benötigt eine Schnittstelle, die für \"DHCP mit Präfix\" konfiguriert ist.";
         undef $new_method;
@@ -350,14 +366,14 @@ while (1)
             and $conf{$if}[$i]{_family} eq "inet6"
             and $conf{$if}[$i]{_method} eq "manual")
       {
-        $conf{$if}[$i]{_method} = "widedhcp";
+        $conf{$if}[$i]{_method} = "dhcpcd";
       }
 
       if (defined $delegation_interfaces{$if}
             and $conf{$if}[$i]{_family} eq "inet6"
             and $conf{$if}[$i]{_method} eq "manual")
       {
-        $conf{$if}[$i]{_method} = "delg";
+        $conf{$if}[$i]{_method} = "dhcpcd-delegation";
       }
     }
   }
@@ -370,7 +386,7 @@ while (1)
     for my $i (0..$#if)
     {
       $ifs{$if} = 1 if $if[$i]{_family} eq "inet6"
-        and $if[$i]{_method} =~ /^static$|^dhcp|^manual|^auto|^delg|^widedhcp$/;
+        and $if[$i]{_method} =~ /^static$|^dhcp|^manual|^auto|^dhcpcd-delegation|^dhcpcd$/;
     }
   }
 
@@ -540,15 +556,15 @@ while (1)
             $mask{"netmask"} = qr/^$mask_netmask?$/;
           }
 
-          if ($def{_method} eq "delg")
+          if ($def{_method} eq "dhcpcd-delegation")
           {
-            $mask{"wide-dhcpv6-ifid"} = qr/[a-fA-F0-9]{1,64}/;
-            $mask{"wide-dhcpv6-sla-id"} = qr/[a-fA-F0-9]/;
+            $mask{"dhcpcd-ifid"} = qr/[a-fA-F0-9]{1,64}/;
+            $mask{"dhcpcd-sla-id"} = qr/[a-fA-F0-9]/;
           }
 
-	  if ($def{_method} eq "widedhcp")
+	  if ($def{_method} eq "dhcpcd")
           {
-            $mask{"wide-dhcpv6-sla-len"} = qr/[0-9]+/;
+            $mask{"dhcpcd-sla-len"} = qr/[0-9]+/;
           }
 
 	  if ($if =~ /^(wlan|wl)/)
@@ -612,8 +628,8 @@ while (1)
             undef $def[$stanza_key];
             $def[$stanza_key]{$_} = $def{$_} for keys %def;
 
-            # handle automagically methods (widedhcp and delg)
-            if ($conf{$if}[$stanza_key]{_method} eq "widedhcp")
+            # handle automagically methods (dhcpcd and dhcpcd-delegation)
+            if ($conf{$if}[$stanza_key]{_method} eq "dhcpcd")
             {
               $dhcp_interfaces{$if} = 1;
               $def[$stanza_key]{_method} = "manual";
@@ -625,28 +641,28 @@ while (1)
 
               for my $stanza_key (0..$#if_conf)
               {
-                do { $dhcp_found = 1; last; } if $conf{$if}[$stanza_key]{_method} eq "widedhcp";
+                do { $dhcp_found = 1; last; } if $conf{$if}[$stanza_key]{_method} eq "dhcpcd";
               }
 
               delete $dhcp_interfaces{$if} unless $dhcp_found;
             }
 
-            if ($conf{$if}[$stanza_key]{_method} eq "delg")
+            if ($conf{$if}[$stanza_key]{_method} eq "dhcpcd-delegation")
             {
               $delegation_interfaces{$if} = 1;
               $def[$stanza_key]{_method} = "manual";
             }
             else
             {
-              my $delg_found = 0;
+              my $delegation_found = 0;
               my @if_conf = @{ $conf{$if} };
 
               for my $stanza_key (0..$#if_conf)
               {
-                do { $delg_found = 1; last; } if $conf{$if}[$stanza_key]{_method} eq "delg";
+                do { $delegation_found = 1; last; } if $conf{$if}[$stanza_key]{_method} eq "dhcpcd-delegation";
               }
 
-              delete $delegation_interfaces{$if} unless $delg_found;
+              delete $delegation_interfaces{$if} unless $delegation_found;
             }
 
             $changes{$if} = "";
@@ -654,13 +670,13 @@ while (1)
             {
               my %def = %{ $def[$i] };
               my $method = $def{_method};
-              $method = "manual" if $method =~ /^(?:delg|widedhcp)$/;
+              $method = "manual" if $method =~ /^(?:dhcpcd-delegation|dhcpcd)$/;
               $changes{$if} .= "iface $if $def{_family} $method\n".
               (join "", map "\t$_ $def{$_}\n", grep !/^_/, keys %def);
             }
 
             # copy current config to defintion to ensure correct displaying
-            # (e.g. manual + delg => delg instead of manual as method)
+            # (e.g. manual + dhcpcd-delegation => dhcpcd-delegation instead of manual as method)
             $def[$stanza_key] = { %{ $conf{$if}[$stanza_key] } };
             last;
           }
