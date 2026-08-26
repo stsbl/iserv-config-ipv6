@@ -1,0 +1,77 @@
+#!/bin/sh
+# Apply the IPv6 extension after iservcfg has generated the IPv4 DSL peer.
+set -eu
+
+peer=${ISERV_IPV6_DSL_PEER:-/etc/ppp/peers/dsl}
+config=${ISERV_IPV6_DSL_CONFIG:-/var/lib/iserv/config/ipv6-dsl}
+begin='# BEGIN stsbl-iserv-config-ipv6 DSL IPv6'
+end='# END stsbl-iserv-config-ipv6 DSL IPv6'
+link_begin='# BEGIN stsbl-iserv-config-ipv6 DSL link'
+link_end='# END stsbl-iserv-config-ipv6 DSL link'
+
+ENABLED=0
+ADDRESS_TOKEN=::2
+REQUEST_PREFIX=1
+if [ -r "$config" ]; then
+  # The file is written by the dedicated iservcfg menu and contains only these
+  # three scalar values.  Do not source it.
+  while IFS='=' read -r key value; do
+    case "$key" in
+      ENABLED) ENABLED=$value ;;
+      ADDRESS_TOKEN) ADDRESS_TOKEN=$value ;;
+      REQUEST_PREFIX) REQUEST_PREFIX=$value ;;
+    esac
+  done < "$config"
+fi
+
+case "$ENABLED:$REQUEST_PREFIX" in
+  0:*) ;;
+  1:0|1:1) ;;
+  *) exit 2 ;;
+esac
+case "$ADDRESS_TOKEN" in
+  ::[0-9A-Fa-f:]*|::) ;;
+  *) exit 2 ;;
+esac
+
+case "${1:---apply}" in
+  --request-prefix)
+    [ "$ENABLED" = 1 ] && [ "$REQUEST_PREFIX" = 1 ]
+    exit
+    ;;
+  --apply|--check) ;;
+  *) echo "Usage: $0 [--apply|--check|--request-prefix]" >&2; exit 2 ;;
+esac
+
+[ -f "$peer" ] || exit 0
+tmp=$(mktemp "${peer}.XXXXXX")
+trap 'rm -f "$tmp"' EXIT HUP INT TERM
+awk -v begin="$begin" -v end="$end" -v link_begin="$link_begin" -v link_end="$link_end" '
+  $0 == begin || $0 == link_begin { skip = 1; next }
+  skip && ($0 == end || $0 == link_end) { skip = 0; next }
+  !skip { print }
+' "$peer" > "$tmp"
+
+if ! grep -Fxq 'ifname dsl' "$tmp"
+then
+  cat >> "$tmp" <<EOF_LINK
+$link_begin
+ifname dsl
+$link_end
+EOF_LINK
+fi
+
+if [ "$ENABLED" = 1 ]; then
+  cat >> "$tmp" <<EOF_BLOCK
+$begin
++ipv6
+ipv6 $ADDRESS_TOKEN
+$end
+EOF_BLOCK
+fi
+
+if [ "${1:---apply}" = --check ]; then
+  cmp -s "$peer" "$tmp"
+else
+  cmp -s "$peer" "$tmp" || cat "$tmp" > "$peer"
+fi

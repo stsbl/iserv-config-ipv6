@@ -6,7 +6,7 @@ then
       grep -qx "$IFACE" /var/lib/iserv/config/ipv6-dhcp-interfaces.list)
   then
     echo "Restarting WIDE DHCPv6 client ..."
-    systemctl try-restart wide-dhcpv6-client.service
+    systemctl try-restart dhcpcd.service
     echo "Done."
   fi
 fi

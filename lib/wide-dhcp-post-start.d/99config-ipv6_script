@@ -1,4 +1,0 @@
-#!/bin/sh
-set -e
-
-touch /run/wide-dhcpv6-script

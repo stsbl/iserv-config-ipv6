@@ -1,0 +1,5 @@
+Test "remove WIDE DHCPv6 client"
+  ! iservpkginstalled wide-dhcpv6-client
+  ---
+  DEBIAN_FRONTEND=noninteractive apt-get -y purge wide-dhcpv6-client
+
