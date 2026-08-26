@@ -40,14 +40,23 @@ def placeholder(address, length):
     parsed = ipaddress.IPv6Address(address)
     if parsed.is_private or length is None:
         return str(parsed)
-    suffix = parsed.exploded.replace(':', '')[length // 4:]
-    first_length = 4 - (length % 4)
-    result = suffix[:first_length]
-    groups = [suffix[index:index + 4] for index in range(first_length, len(suffix), 4)]
-    if groups:
-        result += ':' + ':'.join(groups)
-    # IPv6's canonical formatter lets us safely compress only the suffix.
-    return '$prefix$' + _compress_suffix(result)
+
+    # dhcpy6d substitutes $prefix$ textually.  Render the prefix as the
+    # unpadded hexadecimal text preceding the dynamic subnet bits, then use
+    # the canonical address remainder.  Splitting an exploded address at /56
+    # would retain two zero padding digits (e.g. $prefix$1700::), yielding an
+    # invalid five-digit hextet after textual substitution.
+    hex_address = parsed.exploded.replace(':', '')
+    prefix_hex = hex_address[:length // 4]
+    if length % 4:
+        prefix_hex += hex_address[length // 4:length // 4 + 1]
+    groups = [prefix_hex[index:index + 4].lstrip('0') or '0'
+              for index in range(0, len(prefix_hex), 4)]
+    prefix_text = ':'.join(groups)
+    canonical = str(parsed)
+    if not canonical.startswith(prefix_text):
+        raise ValueError(f'cannot render {address} using a /{length} prefix placeholder')
+    return '$prefix$' + canonical[len(prefix_text):]
 
 
 def _compress_suffix(suffix):
