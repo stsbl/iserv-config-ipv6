@@ -8,7 +8,7 @@
 
 **Tech Stack:** Debian packaging, IServ iconf/iservchk, Perl, POSIX shell, Python unittest, dhcpcd.
 
-**Spec:** `docs/superpowers/specs/2026-08-26-dhcpcd-prefix-delegation-design.md`
+**Spec:** `doc/superpowers/specs/2026-08-26-dhcpcd-prefix-delegation-design.md`
 
 ## Global Constraints
 
