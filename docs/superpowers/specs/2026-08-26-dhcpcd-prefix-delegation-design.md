@@ -13,7 +13,7 @@ The generated configuration uses pve00's proven form: global `duid`, `noipv6rs`,
 
 Canonical ifupdown modes are `dhcpcd` and `dhcpcd-delegation`; new dhcpcd-named interface options replace `wide-dhcpv6-*`. Legacy `widedhcp`, `delg`, and `wide-dhcpv6-*` remain read-compatible. Saving a configuration writes canonical dhcpcd names. Migration preserves persisted SLA length, SLA ID, IA_NA request, and existing interface lists.
 
-The old PPP/ifupdown WIDE restart paths become dhcpcd restarts. pve00's existing `ip-up.d/iserv` already restarts dhcpcd, so config-ipv6 must avoid duplicate competing restart behavior while retaining the delayed accept_ra retry for PPP interfaces.
+The old PPP/ifupdown WIDE restart paths become dhcpcd restarts. pve00's existing `ip-up.d/iserv` already restarts dhcpcd, so config-ipv6 must avoid duplicate competing restart behavior while retaining the delayed accept_ra retry for PPP interfaces. The adjacent dyndnsd reload is explicitly out of scope; a future `stsbl-iserv-dyndnsd` project may own it.
 
 ## dhcpy6d dynamic prefix and option expansion
 The packaged dhcpy6d hook and systemd environment drop-in remain opt-in via `ENABLE_DYNAMIC_PREFIX_FROM_DHCPCD=yes`. On dhcpcd BOUND6, RENEW6, or REBIND6 of IA_PD 1, the hook derives the delegated prefix stem, writes it atomically to the environment file, and restarts dhcpy6d only when it changed.
