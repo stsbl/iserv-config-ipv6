@@ -12,7 +12,11 @@ my $tmp = tempdir(CLEANUP => 1);
 my $config = "$tmp/config";
 my $state = "$tmp/state";
 my $interfaces = "$tmp/ipv6";
+my $wide_duid = "$tmp/dhcp6c_duid";
 make_path($config, $state);
+open my $duid_fh, '>:raw', $wide_duid or die $!;
+print {$duid_fh} pack('C*', 0x0e, 0x00, 0x01, 0x00, 0x01, 0x29, 0x4f, 0xbe, 0xdb, 0x18, 0xc0, 0x4d, 0x0d, 0xb9, 0x20);
+close $duid_fh;
 open my $fh, '>', "$config/ipv6-dhcp-interfaces.list" or die $!;
 print {$fh} "wan0\n";
 close $fh;
@@ -38,16 +42,22 @@ local %ENV = (%ENV,
     ISERV_IPV6_DHCP_CONFIG_DIR => $config,
     ISERV_IPV6_DHCPCD_STATE_DIR => $state,
     ISERV_IPV6_INTERFACES_FILE => $interfaces,
+    ISERV_IPV6_WIDE_DUID_FILE => $wide_duid,
 );
 is(system("./$importer") >> 8, 0, 'legacy import exits successfully');
 for my $expected (
     ['wan0.sla-len', '60'],
     ['lan0.sla-id', '0'], ['lan0.ifid', '1'],
     ['lan1.sla-id', '1'], ['lan1.ifid', '1'],
+    ['duid', '00:01:00:01:29:4f:be:db:18:c0:4d:0d:b9:20'],
+    ['wan0.iaid', '0'],
 ) {
-    open my $state_file, '<', "$state/$expected->[0]" or die $!;
+    my $state_path = "$state/$expected->[0]";
+    ok(-f $state_path, "imports $expected->[0]");
+    next unless -f $state_path;
+    open my $state_file, '<', $state_path or die $!;
     chomp(my $value = <$state_file>);
-    is($value, $expected->[1], "imports $expected->[0]");
+    is($value, $expected->[1], "has expected $expected->[0] value");
 }
 
 is(system("./$importer") >> 8, 0, 'repeat legacy import exits successfully');

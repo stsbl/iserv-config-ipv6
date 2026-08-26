@@ -59,6 +59,21 @@ is($exit, 0, "generator accepts an explicit IA_NA opt-out: $errors");
 unlike($output, qr/^\tia_na 1$/m, 'explicitly disabled IA_NA is not requested');
 unlink "$state/dhcpcd/wan0.request-na" or die $!;
 
+open my $duid, '>', "$state/dhcpcd/duid" or die $!;
+print {$duid} "00:01:00:01:29:4f:be:db:18:c0:4d:0d:b9:20\n";
+close $duid;
+open my $iaid, '>', "$state/dhcpcd/wan0.iaid" or die $!;
+print {$iaid} "0\n";
+close $iaid;
+($exit, $output, $errors) = run_generator();
+is($exit, 0, "generator accepts migrated DHCPv6 client identity: $errors");
+like($output, qr/^duid 00:01:00:01:29:4f:be:db:18:c0:4d:0d:b9:20$/m,
+    'generator emits the migrated WIDE DUID');
+like($output, qr/^\tia_pd 0\/::\/56 br100\/0\/64 br200\/24\/64$/m,
+    'generator preserves the WIDE IA_PD IAID');
+unlink "$state/dhcpcd/duid" or die $!;
+unlink "$state/dhcpcd/wan0.iaid" or die $!;
+
 open my $dsl_config, '>', $dsl or die $!;
 print {$dsl_config} "ENABLED=1\nADDRESS_TOKEN=::2\nREQUEST_PREFIX=1\n";
 close $dsl_config;

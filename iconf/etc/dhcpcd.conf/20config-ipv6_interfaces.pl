@@ -36,8 +36,12 @@ exit 0 unless @upstreams;
 my $upstream = shift @upstreams;
 my @downstreams = lines_if_present($delegation_file);
 
+my $duid_file = "$state_dir/duid";
+my $duid = -f $duid_file ? path($duid_file)->slurp_utf8 : '';
+chomp $duid;
+print $duid =~ /^(?:[0-9a-f]{2}:)+[0-9a-f]{2}$/i ? "duid $duid\n" : "duid\n";
+
 print <<'DHCPCD';
-duid
 noipv6rs
 waitip 6
 ipv6only
@@ -70,5 +74,7 @@ if (@downstreams)
     next unless $sla_id =~ /^[0-9a-f]+$/i;
     push @delegations, "$interface/" . hex($sla_id) . '/64';
   }
-  print "\tia_pd 1/::/$prefix_length @delegations\n" if @delegations;
+  my $iaid_file = "$state_dir/$upstream.iaid";
+  my $iaid = -f $iaid_file ? int(path($iaid_file)->slurp_utf8) : 1;
+  print "\tia_pd $iaid/::/$prefix_length @delegations\n" if @delegations;
 }
