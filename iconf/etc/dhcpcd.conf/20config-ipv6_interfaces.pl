@@ -54,7 +54,7 @@ DHCPCD
 print "interface $upstream\n";
 print "\tipv6rs\n";
 my $request_na = "$state_dir/$upstream.request-na";
-print "\tia_na 1\n" if -f $request_na && int(path($request_na)->slurp_utf8);
+print "\tia_na 1\n" unless -f $request_na && !int(path($request_na)->slurp_utf8);
 
 if (@downstreams)
 {

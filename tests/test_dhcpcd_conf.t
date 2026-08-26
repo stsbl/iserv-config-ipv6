@@ -48,15 +48,23 @@ sub run_generator {
 
 my ($exit, $output, $errors) = run_generator();
 is($exit, 0, "generator exits successfully: $errors");
-like($output, qr/^interface wan0\n\tipv6rs\n\tia_pd 1\/::\/56 br100\/0\/64 br200\/24\/64\n/m,
+like($output, qr/^interface wan0\n\tipv6rs\n\tia_na 1\n\tia_pd 1\/::\/56 br100\/0\/64 br200\/24\/64\n/m,
     'generator emits the regular delegated prefix configuration');
+
+open my $request_na, '>', "$state/dhcpcd/wan0.request-na" or die $!;
+print {$request_na} "0\n";
+close $request_na;
+($exit, $output, $errors) = run_generator();
+is($exit, 0, "generator accepts an explicit IA_NA opt-out: $errors");
+unlike($output, qr/^\tia_na 1$/m, 'explicitly disabled IA_NA is not requested');
+unlink "$state/dhcpcd/wan0.request-na" or die $!;
 
 open my $dsl_config, '>', $dsl or die $!;
 print {$dsl_config} "ENABLED=1\nADDRESS_TOKEN=::2\nREQUEST_PREFIX=1\n";
 close $dsl_config;
 ($exit, $output, $errors) = run_generator();
 is($exit, 0, "DSL generator exits successfully: $errors");
-like($output, qr/^interface dsl\n\tipv6rs\n\tia_pd 1\/::\/62 br100\/0\/64 br200\/24\/64\n/m,
+like($output, qr/^interface dsl\n\tipv6rs\n\tia_na 1\n\tia_pd 1\/::\/62 br100\/0\/64 br200\/24\/64\n/m,
     'generator prefers explicitly enabled DSL IPv6 for delegated-prefix configuration');
 unlike($output, qr/^interface wan0\n/m, 'generator does not retain another prefix-requesting interface when DSL is explicit');
 
