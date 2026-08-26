@@ -17,11 +17,7 @@ Test "import existing DSL IPv6 configuration"
   if [ ! -e "$config" ]
   then
     umask 022
-    cat > "$config" <<EOF_CONFIG
-ENABLED=$enabled
-ADDRESS_TOKEN=$token
-REQUEST_PREFIX=1
-EOF_CONFIG
+    printf 'ENABLED=%s\nADDRESS_TOKEN=%s\nREQUEST_PREFIX=1\n' "$enabled" "$token" > "$config"
   fi
   /usr/lib/iserv/iserv-ipv6-dsl --apply
   echo 20config-ipv6_dsl >> /var/lib/iserv/config/update.log

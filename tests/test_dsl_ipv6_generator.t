@@ -48,4 +48,11 @@ $output = do { local $/; <$fh> };
 close $fh;
 unlike($output, qr/stsbl-iserv-config-ipv6 DSL IPv6/, 'generator removes its block when IPv6 is disabled');
 
+open $fh, '<', 'iservchk/80legacy/20config-ipv6_dsl' or die $!;
+$output = do { local $/; <$fh> };
+close $fh;
+unlike($output, qr/<<EOF_CONFIG/, 'legacy iservchk migration avoids a nested heredoc');
+like($output, qr/printf 'ENABLED=%s\\nADDRESS_TOKEN=%s\\nREQUEST_PREFIX=1\\n'/,
+    'legacy iservchk migration writes the imported configuration safely');
+
 done_testing;
