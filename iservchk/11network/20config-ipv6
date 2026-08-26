@@ -39,6 +39,15 @@ Insert "/etc/network/interfaces"
 
 Touch /var/lib/iserv/config/ipv6-{dhcp,delegation}-interfaces.list
 
+Test "import WIDE DHCPv6 delegation state"
+  grep -qx 20config-ipv6_import-wide-dhcpcd-state /var/lib/iserv/config/update.log
+  ---
+  set -e
+  /usr/lib/iserv/iserv-ipv6-import-wide-state
+  iconf repair /etc/dhcpcd.conf || true
+  iservchk dhcpcd
+  echo 20config-ipv6_import-wide-dhcpcd-state >> /var/lib/iserv/config/update.log
+
 Test "migrate ipv6 dhcp prefix configuration"
   ! [ -f "/etc/iserv/dhcpv6-prefix" ]
   ---
@@ -79,4 +88,3 @@ ChPerm 0755 root:root /etc/network/if-up.d/zzz_iserv-ipv6
 
 Check /etc/network/if-down.d/iserv-ipv6
 ChPerm 0755 root:root /etc/network/if-down.d/iserv-ipv6
-
