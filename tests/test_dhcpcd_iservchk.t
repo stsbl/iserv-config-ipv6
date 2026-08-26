@@ -10,4 +10,5 @@ like($source, qr/Check \/etc\/dhcpcd\.conf/, 'manages generated dhcpcd configura
 like($source, qr/Start dhcpcd dhcpcd/, 'starts dhcpcd through iservchk');
 like($source, qr/Remove \/etc\/wide-dhcpv6\/dhcp6c\.conf/, 'removes obsolete WIDE configuration');
 like($source, qr/Stop wide-dhcpv6-client/, 'stops obsolete WIDE client');
+like($source, qr/else\n  echo \"Remove \/etc\/dhcpcd\.conf\"\n  echo \"Stop dhcpcd\"/, 'stops native dhcpcd only when IPv6 delegation is unused');
 done_testing;
