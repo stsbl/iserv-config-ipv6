@@ -19,9 +19,9 @@ sub lines_if_present
 }
 
 my @upstreams = lines_if_present($request_file);
+my %dsl;
 if (-f $dsl_config)
 {
-  my %dsl;
   for my $line (path($dsl_config)->lines_utf8)
   {
     chomp $line;
@@ -36,8 +36,12 @@ exit 0 unless @upstreams;
 my $upstream = shift @upstreams;
 my @downstreams = lines_if_present($delegation_file);
 
+my $duid_file = "$state_dir/duid";
+my $duid = -f $duid_file ? path($duid_file)->slurp_utf8 : '';
+chomp $duid;
+print $duid =~ /^(?:[0-9a-f]{2}:)+[0-9a-f]{2}$/i ? "duid $duid\n" : "duid\n";
+
 print <<'DHCPCD';
-duid
 noipv6rs
 waitip 6
 ipv6only
@@ -53,13 +57,13 @@ DHCPCD
 
 print "interface $upstream\n";
 print "\tipv6rs\n";
-my $request_na = "$state_dir/$upstream.request-na";
-print "\tia_na 1\n" unless -f $request_na && !int(path($request_na)->slurp_utf8);
+my $request_na = exists $dsl{REQUEST_NA} ? $dsl{REQUEST_NA} : (-f "$state_dir/$upstream.request-na" ? path("$state_dir/$upstream.request-na")->slurp_utf8 : 1);
+print "\tia_na 1\n" if int($request_na);
 
 if (@downstreams)
 {
   my $length_file = "$state_dir/$upstream.sla-len";
-  my $prefix_length = -f $length_file ? int(path($length_file)->slurp_utf8) : 62;
+  my $prefix_length = exists $dsl{SLA_LEN} ? int($dsl{SLA_LEN}) : (-f $length_file ? int(path($length_file)->slurp_utf8) : 62);
   my @delegations;
   for my $interface (@downstreams)
   {
@@ -70,5 +74,7 @@ if (@downstreams)
     next unless $sla_id =~ /^[0-9a-f]+$/i;
     push @delegations, "$interface/" . hex($sla_id) . '/64';
   }
-  print "\tia_pd 1/::/$prefix_length @delegations\n" if @delegations;
+  my $iaid_file = "$state_dir/$upstream.iaid";
+  my $iaid = -f $iaid_file ? int(path($iaid_file)->slurp_utf8) : 1;
+  print "\tia_pd $iaid/::/$prefix_length @delegations\n" if @delegations;
 }

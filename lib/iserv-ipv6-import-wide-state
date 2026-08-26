@@ -6,6 +6,7 @@ set -eu
 config_dir=${ISERV_IPV6_DHCP_CONFIG_DIR:-/var/lib/iserv/config}
 state_dir=${ISERV_IPV6_DHCPCD_STATE_DIR:-/var/lib/iserv/config-ipv6/dhcpcd}
 interfaces=${ISERV_IPV6_INTERFACES_FILE:-/etc/network/interfaces.d/ipv6}
+wide_duid_file=${ISERV_IPV6_WIDE_DUID_FILE:-/var/lib/dhcpv6/dhcp6c_duid}
 
 value_for()
 {
@@ -53,3 +54,37 @@ then
     import_value "$interface" ifid dhcpcd-ifid wide-dhcpv6-ifid
   done < "$config_dir/ipv6-delegation-interfaces.list"
 fi
+
+
+# WIDE stores the DUID as a one-byte length followed by the DUID bytes.  Keep
+# this identity while migrating: some access concentrators allow only the
+# existing DUID/IAID binding to hold the delegated prefix.
+import_wide_duid()
+{
+  target="$state_dir/duid"
+  [ -e "$target" ] && return 0
+  [ -r "$wide_duid_file" ] || return 0
+
+  length=$(od -An -tu1 -N1 "$wide_duid_file" | tr -d '[:space:]')
+  value=$(dd if="$wide_duid_file" bs=1 skip=1 2>/dev/null | od -An -tx1 -v | tr -d '[:space:]')
+  [ -n "$length" ] && [ -n "$value" ] || return 0
+  [ "${#value}" -eq "$((length * 2))" ] || return 0
+
+  value=$(printf '%s\n' "$value" | sed 's/../&:/g; s/:$//')
+  mkdir -p "$state_dir"
+  printf '%s\n' "$value" > "$target"
+
+  # WIDE's generated configuration always used id-assoc pd 0.  Retaining the
+  # IAID makes this a real client-identity migration instead of a new request.
+  if [ -r "$config_dir/ipv6-dhcp-interfaces.list" ]
+  then
+    while IFS= read -r interface
+    do
+      [ -n "$interface" ] || continue
+      target="$state_dir/$interface.iaid"
+      [ -e "$target" ] || printf '0\n' > "$target"
+    done < "$config_dir/ipv6-dhcp-interfaces.list"
+  fi
+}
+
+import_wide_duid

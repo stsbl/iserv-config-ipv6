@@ -4,6 +4,7 @@ set -e
 TITLE="DSL IPv6"
 DLG=(dialog --stdout --backtitle "IServ-Konfiguration > $TITLE")
 CONFIG=/var/lib/iserv/config/ipv6-dsl
+DHCPCD_STATE=/var/lib/iserv/config-ipv6/dhcpcd
 PEER=/etc/ppp/peers/dsl
 
 if [ ! -f "$PEER" ]
@@ -20,6 +21,10 @@ fi
 ENABLED=0
 ADDRESS_TOKEN=::2
 REQUEST_PREFIX=1
+REQUEST_NA=1
+SLA_LEN=62
+REQUEST_NA_SET=0
+SLA_LEN_SET=0
 if [ -r "$CONFIG" ]
 then
   while IFS='=' read -r key value
@@ -28,12 +33,23 @@ then
       ENABLED) ENABLED=$value ;;
       ADDRESS_TOKEN) ADDRESS_TOKEN=$value ;;
       REQUEST_PREFIX) REQUEST_PREFIX=$value ;;
+      REQUEST_NA) REQUEST_NA=$value; REQUEST_NA_SET=1 ;;
+      SLA_LEN) SLA_LEN=$value; SLA_LEN_SET=1 ;;
     esac
   done < "$CONFIG"
+fi
+if [ "$REQUEST_NA_SET" = 0 ] && [ -r "$DHCPCD_STATE/dsl.request-na" ]
+then
+  REQUEST_NA=$(cat "$DHCPCD_STATE/dsl.request-na")
+fi
+if [ "$SLA_LEN_SET" = 0 ] && [ -r "$DHCPCD_STATE/dsl.sla-len" ]
+then
+  SLA_LEN=$(cat "$DHCPCD_STATE/dsl.sla-len")
 fi
 
 value() { [ "$1" = 1 ] && echo aktiviert || echo deaktiviert; }
 valid_token() { [[ "$1" =~ ^::[0-9A-Fa-f:]*$ ]]; }
+valid_prefix_length() { [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -le 128 ]; }
 
 while true
 do
@@ -42,6 +58,8 @@ do
     enabled "IPv6: $(value "$ENABLED")" \
     token "Adress-Token: $ADDRESS_TOKEN" \
     prefix "Präfix anfordern: $(value "$REQUEST_PREFIX")" \
+    request_na "IA_NA-Adresse anfordern: $(value "$REQUEST_NA")" \
+    sla_len "Delegierte Präfixlänge: /$SLA_LEN" \
     save "Speichern und beenden" \
     exit "Beenden" 2>&1) || exit 0
   case "$selection" in
@@ -56,12 +74,22 @@ do
     prefix)
       REQUEST_PREFIX=$("${DLG[@]}" --menu "Delegiertes IPv6-Präfix anfordern?" 0 0 0 1 "Ja" 0 "Nein" 2>&1) || :
       ;;
+    request_na)
+      REQUEST_NA=$("${DLG[@]}" --menu "DHCPv6-IA_NA-Adresse anfordern?" 0 0 0 1 "Ja" 0 "Nein" 2>&1) || :
+      ;;
+    sla_len)
+      value=$("${DLG[@]}" --inputbox "Länge des delegierten IPv6-Präfixes (0-128)" 0 0 "$SLA_LEN" 2>&1) || continue
+      valid_prefix_length "$value" || { "${DLG[@]}" --msgbox "Ungültige Präfixlänge; erlaubt sind 0 bis 128." 0 0; continue; }
+      SLA_LEN=$value
+      ;;
     save)
       mkdir -p "$(dirname "$CONFIG")"
       cat > "$CONFIG" <<EOF_CONFIG
 ENABLED=$ENABLED
 ADDRESS_TOKEN=$ADDRESS_TOKEN
 REQUEST_PREFIX=$REQUEST_PREFIX
+REQUEST_NA=$REQUEST_NA
+SLA_LEN=$SLA_LEN
 EOF_CONFIG
       iservchk dsl dhcpcd
       exit 0
