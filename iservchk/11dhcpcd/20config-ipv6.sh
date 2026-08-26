@@ -6,6 +6,7 @@ then
   echo "Start dhcpcd dhcpcd"
 else
   echo "Remove /etc/dhcpcd.conf"
+  echo "Stop dhcpcd"
 fi
 
 echo "Remove /etc/default/wide-dhcpv6-client"
