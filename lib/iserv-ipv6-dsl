@@ -6,13 +6,12 @@ peer=${ISERV_IPV6_DSL_PEER:-/etc/ppp/peers/dsl}
 config=${ISERV_IPV6_DSL_CONFIG:-/var/lib/iserv/config/ipv6-dsl}
 begin='# BEGIN stsbl-iserv-config-ipv6 DSL IPv6'
 end='# END stsbl-iserv-config-ipv6 DSL IPv6'
+link_begin='# BEGIN stsbl-iserv-config-ipv6 DSL link'
+link_end='# END stsbl-iserv-config-ipv6 DSL link'
 
 ENABLED=0
 ADDRESS_TOKEN=::2
 REQUEST_PREFIX=1
-# Keep an existing peer unchanged until the one-time legacy importer has
-# persisted an explicit setting.
-[ -e "$config" ] || exit 0
 if [ -r "$config" ]; then
   # The file is written by the dedicated iservcfg menu and contains only these
   # three scalar values.  Do not source it.
@@ -47,18 +46,26 @@ esac
 [ -f "$peer" ] || exit 0
 tmp=$(mktemp "${peer}.XXXXXX")
 trap 'rm -f "$tmp"' EXIT HUP INT TERM
-awk -v begin="$begin" -v end="$end" '
-  $0 == begin { skip = 1; next }
-  skip && $0 == end { skip = 0; next }
+awk -v begin="$begin" -v end="$end" -v link_begin="$link_begin" -v link_end="$link_end" '
+  $0 == begin || $0 == link_begin { skip = 1; next }
+  skip && ($0 == end || $0 == link_end) { skip = 0; next }
   !skip { print }
 ' "$peer" > "$tmp"
+
+if ! grep -Fxq 'ifname dsl' "$tmp"
+then
+  cat >> "$tmp" <<EOF_LINK
+$link_begin
+ifname dsl
+$link_end
+EOF_LINK
+fi
 
 if [ "$ENABLED" = 1 ]; then
   cat >> "$tmp" <<EOF_BLOCK
 $begin
 +ipv6
 ipv6 $ADDRESS_TOKEN
-ifname dsl
 $end
 EOF_BLOCK
 fi

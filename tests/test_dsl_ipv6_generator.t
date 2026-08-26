@@ -36,7 +36,9 @@ is((run_generator('--check'))[0], 0, 'generator verifies its generated DSL IPv6 
 open $fh, '<', $peer or die $!;
 my $output = do { local $/; <$fh> };
 close $fh;
-like($output, qr/# BEGIN stsbl-iserv-config-ipv6 DSL IPv6\n\+ipv6\nipv6 ::2\nifname dsl\n# END stsbl-iserv-config-ipv6 DSL IPv6\n\z/,
+like($output, qr/# BEGIN stsbl-iserv-config-ipv6 DSL link\nifname dsl\n# END stsbl-iserv-config-ipv6 DSL link\n/,
+    'generator appends an idempotent managed static DSL interface name');
+like($output, qr/# BEGIN stsbl-iserv-config-ipv6 DSL IPv6\n\+ipv6\nipv6 ::2\n# END stsbl-iserv-config-ipv6 DSL IPv6\n\z/,
     'generator appends an idempotent managed IPv6 block');
 
 open $fh, '>', $config or die $!;
@@ -46,7 +48,15 @@ is((run_generator('--apply'))[0], 0, 'generator accepts disabled IPv6');
 open $fh, '<', $peer or die $!;
 $output = do { local $/; <$fh> };
 close $fh;
-unlike($output, qr/stsbl-iserv-config-ipv6 DSL IPv6/, 'generator removes its block when IPv6 is disabled');
+like($output, qr/stsbl-iserv-config-ipv6 DSL link/, 'generator retains the static DSL interface name when IPv6 is disabled');
+unlike($output, qr/stsbl-iserv-config-ipv6 DSL IPv6/, 'generator removes its IPv6 block when IPv6 is disabled');
+
+unlink $config or die $!;
+is((run_generator('--apply'))[0], 0, 'generator supports a DSL peer without IPv6 configuration');
+open $fh, '<', $peer or die $!;
+$output = do { local $/; <$fh> };
+close $fh;
+like($output, qr/stsbl-iserv-config-ipv6 DSL link/, 'static DSL interface name does not require IPv6 to be enabled');
 
 open $fh, '<', 'iservchk/80legacy/20config-ipv6_dsl' or die $!;
 $output = do { local $/; <$fh> };
