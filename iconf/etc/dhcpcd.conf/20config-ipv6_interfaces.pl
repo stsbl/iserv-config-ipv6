@@ -19,9 +19,9 @@ sub lines_if_present
 }
 
 my @upstreams = lines_if_present($request_file);
+my %dsl;
 if (-f $dsl_config)
 {
-  my %dsl;
   for my $line (path($dsl_config)->lines_utf8)
   {
     chomp $line;
@@ -57,13 +57,13 @@ DHCPCD
 
 print "interface $upstream\n";
 print "\tipv6rs\n";
-my $request_na = "$state_dir/$upstream.request-na";
-print "\tia_na 1\n" unless -f $request_na && !int(path($request_na)->slurp_utf8);
+my $request_na = exists $dsl{REQUEST_NA} ? $dsl{REQUEST_NA} : (-f "$state_dir/$upstream.request-na" ? path("$state_dir/$upstream.request-na")->slurp_utf8 : 1);
+print "\tia_na 1\n" if int($request_na);
 
 if (@downstreams)
 {
   my $length_file = "$state_dir/$upstream.sla-len";
-  my $prefix_length = -f $length_file ? int(path($length_file)->slurp_utf8) : 62;
+  my $prefix_length = exists $dsl{SLA_LEN} ? int($dsl{SLA_LEN}) : (-f $length_file ? int(path($length_file)->slurp_utf8) : 62);
   my @delegations;
   for my $interface (@downstreams)
   {
