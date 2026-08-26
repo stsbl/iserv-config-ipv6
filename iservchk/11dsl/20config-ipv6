@@ -1,0 +1,4 @@
+Test "synchronize DSL IPv6 peer configuration"
+  /usr/lib/iserv/iserv-ipv6-dsl --check
+  ---
+  /usr/lib/iserv/iserv-ipv6-dsl --apply

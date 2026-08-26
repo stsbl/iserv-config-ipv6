@@ -1,0 +1,27 @@
+MkDir 0755 root:root /var/lib/iserv/config-ipv6
+
+Test "import existing DSL IPv6 configuration"
+  grep -qx 20config-ipv6_dsl /var/lib/iserv/config/update.log
+  ---
+  set -e
+  config=/var/lib/iserv/config/ipv6-dsl
+  peer=/etc/ppp/peers/dsl
+  enabled=0
+  token=::2
+  if [ -r "$peer" ] && grep -qx '+ipv6' "$peer"
+  then
+    enabled=1
+    token="$(awk '$1 == "ipv6" { print $2; exit }' "$peer")"
+    [ -n "$token" ] || token=::2
+  fi
+  if [ ! -e "$config" ]
+  then
+    umask 022
+    cat > "$config" <<EOF_CONFIG
+ENABLED=$enabled
+ADDRESS_TOKEN=$token
+REQUEST_PREFIX=1
+EOF_CONFIG
+  fi
+  /usr/lib/iserv/iserv-ipv6-dsl --apply
+  echo 20config-ipv6_dsl >> /var/lib/iserv/config/update.log

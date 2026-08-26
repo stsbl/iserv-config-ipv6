@@ -9,6 +9,7 @@ my $config_dir = $ENV{ISERV_IPV6_DHCP_CONFIG_DIR} // '/var/lib/iserv/config';
 my $state_dir = $ENV{ISERV_IPV6_DHCPCD_STATE_DIR} // '/var/lib/iserv/config-ipv6/dhcpcd';
 my $request_file = "$config_dir/ipv6-dhcp-interfaces.list";
 my $delegation_file = "$config_dir/ipv6-delegation-interfaces.list";
+my $dsl_config = $ENV{ISERV_IPV6_DSL_CONFIG} // "$config_dir/ipv6-dsl";
 
 sub lines_if_present
 {
@@ -18,6 +19,19 @@ sub lines_if_present
 }
 
 my @upstreams = lines_if_present($request_file);
+if (-f $dsl_config)
+{
+  my %dsl;
+  for my $line (path($dsl_config)->lines_utf8)
+  {
+    chomp $line;
+    my ($key, $value) = split /=/, $line, 2;
+    $dsl{$key} = $value if defined $key and defined $value;
+  }
+  # A DSL peer is a dedicated uplink.  It supersedes an older remembered
+  # upstream selection so only one interface requests the delegated prefix.
+  @upstreams = ('dsl') if ($dsl{ENABLED} // 0) eq '1' and ($dsl{REQUEST_PREFIX} // 1) eq '1';
+}
 exit 0 unless @upstreams;
 my $upstream = shift @upstreams;
 my @downstreams = lines_if_present($delegation_file);

@@ -7,10 +7,11 @@ address or a $prefix$ form suitable for dhcpy6d configuration.
 """
 import argparse
 import ipaddress
+import os
 from pathlib import Path
 
-CONFIG_DIR = Path('/var/lib/iserv/config')
-STATE_DIR = Path('/var/lib/iserv/config-ipv6/dhcpcd')
+CONFIG_DIR = Path(os.environ.get('ISERV_IPV6_DHCP_CONFIG_DIR', '/var/lib/iserv/config'))
+STATE_DIR = Path(os.environ.get('ISERV_IPV6_DHCPCD_STATE_DIR', '/var/lib/iserv/config-ipv6/dhcpcd'))
 
 
 def entries(path):
@@ -23,13 +24,16 @@ def entries(path):
 def delegated_prefix_length():
     upstreams = entries(CONFIG_DIR / 'ipv6-dhcp-interfaces.list')
     downstreams = entries(CONFIG_DIR / 'ipv6-delegation-interfaces.list')
+    dsl = dict(line.split('=', 1) for line in entries(CONFIG_DIR / 'ipv6-dsl') if '=' in line)
+    if dsl.get('ENABLED') == '1' and dsl.get('REQUEST_PREFIX', '1') == '1':
+        upstreams = ['dsl']
     if not upstreams or not downstreams:
         return None
     try:
         length = int((STATE_DIR / f'{upstreams[0]}.sla-len').read_text().strip())
     except (FileNotFoundError, ValueError):
         length = 62
-    return length if 0 <= length <= 128 and length % 4 == 0 else None
+    return length if 0 <= length <= 128 else None
 
 
 def placeholder(address, length):

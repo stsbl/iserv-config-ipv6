@@ -1,0 +1,59 @@
+#!/bin/bash
+set -e
+
+TITLE="DSL IPv6"
+DLG=(dialog --stdout --backtitle "IServ-Konfiguration > $TITLE")
+CONFIG=/var/lib/iserv/config/ipv6-dsl
+
+ENABLED=0
+ADDRESS_TOKEN=::2
+REQUEST_PREFIX=1
+if [ -r "$CONFIG" ]
+then
+  while IFS='=' read -r key value
+  do
+    case "$key" in
+      ENABLED) ENABLED=$value ;;
+      ADDRESS_TOKEN) ADDRESS_TOKEN=$value ;;
+      REQUEST_PREFIX) REQUEST_PREFIX=$value ;;
+    esac
+  done < "$CONFIG"
+fi
+
+value() { [ "$1" = 1 ] && echo aktiviert || echo deaktiviert; }
+valid_token() { [[ "$1" =~ ^::[0-9A-Fa-f:]*$ ]]; }
+
+while true
+do
+  selection=$("${DLG[@]}" --default-item "${selection:-enabled}" \
+    --menu "IPv6 für die DSL-Einwahl konfigurieren:" 0 0 0 \
+    enabled "IPv6: $(value "$ENABLED")" \
+    token "Adress-Token: $ADDRESS_TOKEN" \
+    prefix "Präfix anfordern: $(value "$REQUEST_PREFIX")" \
+    save "Speichern und beenden" \
+    exit "Beenden" 2>&1) || exit 0
+  case "$selection" in
+    enabled)
+      ENABLED=$("${DLG[@]}" --menu "IPv6 aktivieren?" 0 0 0 1 "Ja" 0 "Nein" 2>&1) || :
+      ;;
+    token)
+      value=$("${DLG[@]}" --inputbox "IPv6-Adress-Token" 0 0 "$ADDRESS_TOKEN" 2>&1) || continue
+      valid_token "$value" || { "${DLG[@]}" --msgbox "Ungültiger IPv6-Adress-Token." 0 0; continue; }
+      ADDRESS_TOKEN=$value
+      ;;
+    prefix)
+      REQUEST_PREFIX=$("${DLG[@]}" --menu "Delegiertes IPv6-Präfix anfordern?" 0 0 0 1 "Ja" 0 "Nein" 2>&1) || :
+      ;;
+    save)
+      mkdir -p "$(dirname "$CONFIG")"
+      cat > "$CONFIG" <<EOF_CONFIG
+ENABLED=$ENABLED
+ADDRESS_TOKEN=$ADDRESS_TOKEN
+REQUEST_PREFIX=$REQUEST_PREFIX
+EOF_CONFIG
+      iservchk dsl dhcpcd
+      exit 0
+      ;;
+    exit) exit 0 ;;
+  esac
+done
