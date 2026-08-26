@@ -70,7 +70,7 @@ def _compress_suffix(suffix):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--active', action='store_true', help='exit zero if dynamic prefix substitution is configured')
+    parser.add_argument('--active', '--delegation-enabled', dest='active', action='store_true', help='exit zero if IServ DHCPv6 prefix delegation is configured')
     parser.add_argument('--placeholder', metavar='ADDRESS', help='render ADDRESS using $prefix$ if applicable')
     args = parser.parse_args()
     length = delegated_prefix_length()
