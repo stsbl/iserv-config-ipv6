@@ -1,0 +1,3 @@
+# Restart dhcpcd after PPP has created its IPv6 interface.
+systemctl restart dhcpcd.service
+
