@@ -1,0 +1,86 @@
+#!/usr/bin/python3
+"""Expose configured DHCPv6 prefix-delegation placeholders to consumers.
+
+This deliberately reads IServ's generated configuration, not dhcpcd runtime
+status.  Consumers can pass an IPv6 address and receive either the unchanged
+address or a $prefix$ form suitable for dhcpy6d configuration.
+"""
+import argparse
+import ipaddress
+from pathlib import Path
+
+CONFIG_DIR = Path('/var/lib/iserv/config')
+STATE_DIR = Path('/var/lib/iserv/config-ipv6/dhcpcd')
+
+
+def entries(path):
+    try:
+        return [line.strip() for line in path.read_text().splitlines() if line.strip()]
+    except FileNotFoundError:
+        return []
+
+
+def delegated_prefix_length():
+    upstreams = entries(CONFIG_DIR / 'ipv6-dhcp-interfaces.list')
+    downstreams = entries(CONFIG_DIR / 'ipv6-delegation-interfaces.list')
+    if not upstreams or not downstreams:
+        return None
+    try:
+        length = int((STATE_DIR / f'{upstreams[0]}.sla-len').read_text().strip())
+    except (FileNotFoundError, ValueError):
+        length = 62
+    return length if 0 <= length <= 128 and length % 4 == 0 else None
+
+
+def placeholder(address, length):
+    parsed = ipaddress.IPv6Address(address)
+    if parsed.is_private or length is None:
+        return str(parsed)
+    suffix = parsed.exploded.replace(':', '')[length // 4:]
+    first_length = 4 - (length % 4)
+    result = suffix[:first_length]
+    groups = [suffix[index:index + 4] for index in range(first_length, len(suffix), 4)]
+    if groups:
+        result += ':' + ':'.join(groups)
+    # IPv6's canonical formatter lets us safely compress only the suffix.
+    return '$prefix$' + _compress_suffix(result)
+
+
+def _compress_suffix(suffix):
+    groups = suffix.split(':')
+    # Preserve the partial leading hextet and compress the longest all-zero run.
+    best_start = best_size = -1
+    start = 1
+    while start < len(groups):
+        if groups[start] != '0000':
+            start += 1
+            continue
+        end = start
+        while end < len(groups) and groups[end] == '0000':
+            end += 1
+        if end - start > best_size:
+            best_start, best_size = start, end - start
+        start = end
+    if best_size > 0:
+        groups[best_start:best_start + best_size] = ['']
+    result = ':'.join(groups)
+    result = result.replace(':::', '::')
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--active', action='store_true', help='exit zero if dynamic prefix substitution is configured')
+    parser.add_argument('--placeholder', metavar='ADDRESS', help='render ADDRESS using $prefix$ if applicable')
+    args = parser.parse_args()
+    length = delegated_prefix_length()
+    if args.active:
+        return 0 if length is not None else 1
+    if args.placeholder:
+        print(placeholder(args.placeholder, length))
+        return 0
+    parser.error('use --active or --placeholder')
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
