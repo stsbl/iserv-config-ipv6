@@ -39,7 +39,9 @@ local %ENV = (%ENV,
     ISERV_IPV6_DHCPCD_STATE_DIR => $state,
     ISERV_IPV6_INTERFACES_FILE => $interfaces,
 );
-is(system("./$importer") >> 8, 0, 'legacy import exits successfully');
+my $import_output = `./$importer --changed`;
+is($? >> 8, 0, 'legacy import exits successfully');
+is($import_output, "changed\n", 'legacy import reports when it created state');
 for my $expected (
     ['wan0.sla-len', '60'],
     ['lan0.sla-id', '0'], ['lan0.ifid', '1'],
@@ -49,6 +51,10 @@ for my $expected (
     chomp(my $value = <$state_file>);
     is($value, $expected->[1], "imports $expected->[0]");
 }
+
+$import_output = `./$importer --changed`;
+is($? >> 8, 0, 'repeat legacy import exits successfully');
+is($import_output, '', 'repeat import does not report a change');
 
 my $iservchk = 'iservchk/11network/20config-ipv6';
 open my $check_fh, '<', $iservchk or die $!;
@@ -62,7 +68,9 @@ open $check_fh, '<', $dhcpcd_check or die $!;
 $check_content = do { local $/; <$check_fh> };
 close $check_fh;
 like($check_content,
-    qr{\A#!/bin/sh\n\n/usr/lib/iserv/iserv-ipv6-import-wide-state\n\nif \[ -s},
+    qr{\A#!/bin/sh\n\nwide_state_changed="\$\(/usr/lib/iserv/iserv-ipv6-import-wide-state --changed\)"\n\nif \[ -s},
     'dhcpcd check generator imports the legacy WIDE state before generating checks');
+like($check_content, qr{--changed}, 'dhcpcd check generator detects an imported state change');
+like($check_content, qr{systemctl restart dhcpcd\.service}, 'dhcpcd check generator restarts dhcpcd after importing state');
 
 done_testing;

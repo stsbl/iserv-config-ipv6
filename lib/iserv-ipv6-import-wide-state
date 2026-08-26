@@ -3,9 +3,18 @@
 # state directory.  Existing dhcpcd state always wins.
 set -eu
 
+case ${1:-} in
+  ''|--changed) ;;
+  *)
+    echo "Usage: $0 [--changed]" >&2
+    exit 2
+    ;;
+esac
+
 config_dir=${ISERV_IPV6_DHCP_CONFIG_DIR:-/var/lib/iserv/config}
 state_dir=${ISERV_IPV6_DHCPCD_STATE_DIR:-/var/lib/iserv/config-ipv6/dhcpcd}
 interfaces=${ISERV_IPV6_INTERFACES_FILE:-/etc/network/interfaces.d/ipv6}
+changed=0
 
 value_for()
 {
@@ -31,6 +40,7 @@ import_value()
     [ -n "$value" ] || continue
     mkdir -p "$state_dir"
     printf '%s\n' "$value" > "$target"
+    changed=1
     return 0
   done
 }
@@ -52,4 +62,9 @@ then
     import_value "$interface" sla-id dhcpcd-sla-id wide-dhcpv6-sla-id
     import_value "$interface" ifid dhcpcd-ifid wide-dhcpv6-ifid
   done < "$config_dir/ipv6-delegation-interfaces.list"
+fi
+
+if [ "${1:-}" = --changed ] && [ "$changed" -eq 1 ]
+then
+  printf '%s\n' changed
 fi
