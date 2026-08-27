@@ -28,6 +28,7 @@ echo "Remove /etc/wide-dhcpv6/dhcp6c-script"
 echo "Stop wide-dhcpv6-client"
 echo "Disable iserv-wide-dhcpv6-wait"
 
+cat <<'EOF'
 Test "restart dhcpcd after importing WIDE DHCPv6 delegation state"
   { ! [ -s /var/lib/iserv/config/ipv6-dhcp-interfaces.list ] ||
     ! grep -Eq '^[[:space:]]*wide-dhcpv6-(sla-len|sla-id|ifid)[[:space:]]+' /etc/network/interfaces.d/ipv6; } ||

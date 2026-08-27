@@ -89,4 +89,10 @@ like($check_content,
 like($check_content, qr{systemctl restart dhcpcd\.service}, 'dhcpcd check generator restarts dhcpcd after importing state');
 like($check_content, qr{20config-ipv6_restart-wide-dhcpcd}, 'dhcpcd restart is recorded as a one-time migration');
 
+my $generated = qx{sh "$dhcpcd_check" 2>&1};
+is($? >> 8, 0, 'dhcpcd check generator executes successfully');
+unlike($generated, qr{command not found}, 'dhcpcd check generator emits all checks instead of executing them');
+like($generated, qr{Test "restart dhcpcd after importing WIDE DHCPv6 delegation state"},
+    'dhcpcd check generator emits the runtime WIDE restart check');
+
 done_testing;
