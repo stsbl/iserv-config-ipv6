@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use File::Temp qw(tempdir);
 use File::Path qw(make_path);
+use Path::Tiny;
 
 my $importer = 'lib/iserv-ipv6-import-wide-state';
 ok(-x $importer, 'legacy WIDE state importer is executable')
@@ -41,14 +42,10 @@ close $fh;
 local %ENV = (%ENV,
     ISERV_IPV6_DHCP_CONFIG_DIR => $config,
     ISERV_IPV6_DHCPCD_STATE_DIR => $state,
-    ISERV_IPV6_INTERFACES_FILE => $interfaces,
     ISERV_IPV6_WIDE_DUID_FILE => $wide_duid,
 );
 is(system("./$importer") >> 8, 0, 'legacy import exits successfully');
 for my $expected (
-    ['wan0.sla-len', '60'],
-    ['lan0.sla-id', '0'], ['lan0.ifid', '1'],
-    ['lan1.sla-id', '1'], ['lan1.ifid', '1'],
     ['duid', '00:01:00:01:29:4f:be:db:18:c0:4d:0d:b9:20'],
     ['wan0.iaid', '0'],
 ) {
@@ -67,14 +64,15 @@ open my $check_fh, '<', $iservchk or die $!;
 my $check_content = do { local $/; <$check_fh> };
 close $check_fh;
 unlike($check_content, qr{iserv-ipv6-import-wide-state}, 'network checks do not import state after dhcpcd has run');
+unlike(path($importer)->slurp_utf8, qr/awk/, 'legacy identity importer does not scrape ifupdown configuration');
 
-my $dhcpcd_check = 'iservchk/11dhcpcd/20config-ipv6.sh';
+my $dhcpcd_check = 'iservchk/12dhcpcd/20config-ipv6.sh';
 ok(-x $dhcpcd_check, 'dhcpcd check generator exists');
 open $check_fh, '<', $dhcpcd_check or die $!;
 $check_content = do { local $/; <$check_fh> };
 close $check_fh;
 like($check_content,
-    qr{\A#!/bin/sh\n\n/usr/lib/iserv/iserv-ipv6-import-wide-state\n\nif \[ -s},
+    qr{\A#!/bin/sh\n\n/usr/lib/iserv/iserv-ipv6-import-wide-state\n/usr/lib/iserv/iserv-ipv6-sync-ifupdown-state\n\nif \[ -s},
     'dhcpcd check generator imports the legacy WIDE state before generating checks');
 like($check_content, qr{wide-dhcpv6-\(sla-len\|sla-id\|ifid\)}, 'dhcpcd check generator detects legacy WIDE delegation settings');
 like($check_content, qr{systemctl restart dhcpcd\.service}, 'dhcpcd check generator restarts dhcpcd after importing state');

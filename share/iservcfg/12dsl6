@@ -6,6 +6,7 @@ DLG=(dialog --stdout --backtitle "IServ-Konfiguration > $TITLE")
 CONFIG=/var/lib/iserv/config/ipv6-dsl
 DHCPCD_STATE=/var/lib/iserv/config-ipv6/dhcpcd
 PEER=/etc/ppp/peers/dsl
+DSL_INTERFACE=/usr/lib/iserv/iserv-ipv6-dsl-interface
 
 if [ ! -f "$PEER" ]
 then
@@ -91,7 +92,8 @@ REQUEST_PREFIX=$REQUEST_PREFIX
 REQUEST_NA=$REQUEST_NA
 SLA_LEN=$SLA_LEN
 EOF_CONFIG
-      iservchk dsl dhcpcd
+      "$DSL_INTERFACE" --apply
+      iservchk network dsl dhcpcd
       exit 0
       ;;
     exit) exit 0 ;;

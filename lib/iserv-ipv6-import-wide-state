@@ -1,59 +1,10 @@
 #!/bin/sh
-# Import WIDE DHCPv6 delegation settings kept in interfaces(5) into dhcpcd's
-# state directory.  Existing dhcpcd state always wins.
+# Import the WIDE DHCPv6 client identity into dhcpcd state.
 set -eu
 
 config_dir=${ISERV_IPV6_DHCP_CONFIG_DIR:-/var/lib/iserv/config}
-state_dir=${ISERV_IPV6_DHCPCD_STATE_DIR:-/var/lib/iserv/config-ipv6/dhcpcd}
-interfaces=${ISERV_IPV6_INTERFACES_FILE:-/etc/network/interfaces.d/ipv6}
 wide_duid_file=${ISERV_IPV6_WIDE_DUID_FILE:-/var/lib/dhcpv6/dhcp6c_duid}
-
-value_for()
-{
-  interface=$1
-  option=$2
-  [ -r "$interfaces" ] || return 0
-  awk -v interface="$interface" -v option="$option" '
-    $1 == "iface" { active = ($2 == interface && $3 == "inet6"); next }
-    active && $1 == option { print $2; exit }
-  ' "$interfaces"
-}
-
-import_value()
-{
-  interface=$1
-  suffix=$2
-  shift 2
-  target="$state_dir/$interface.$suffix"
-  [ -e "$target" ] && return 0
-  for option in "$@"
-  do
-    value=$(value_for "$interface" "$option")
-    [ -n "$value" ] || continue
-    mkdir -p "$state_dir"
-    printf '%s\n' "$value" > "$target"
-    return 0
-  done
-}
-
-if [ -r "$config_dir/ipv6-dhcp-interfaces.list" ]
-then
-  while IFS= read -r interface
-  do
-    [ -n "$interface" ] || continue
-    import_value "$interface" sla-len dhcpcd-sla-len wide-dhcpv6-sla-len
-  done < "$config_dir/ipv6-dhcp-interfaces.list"
-fi
-
-if [ -r "$config_dir/ipv6-delegation-interfaces.list" ]
-then
-  while IFS= read -r interface
-  do
-    [ -n "$interface" ] || continue
-    import_value "$interface" sla-id dhcpcd-sla-id wide-dhcpv6-sla-id
-    import_value "$interface" ifid dhcpcd-ifid wide-dhcpv6-ifid
-  done < "$config_dir/ipv6-delegation-interfaces.list"
-fi
+state_dir=${ISERV_IPV6_DHCPCD_STATE_DIR:-/var/lib/iserv/config-ipv6/dhcpcd}
 
 
 # WIDE stores the DUID as a one-byte length followed by the DUID bytes.  Keep

@@ -1,9 +1,9 @@
-stsbl-iserv-config-ipv6 (26.08.27.2) UNRELEASED; urgency=medium
+stsbl-iserv-config-ipv6 (26.08.27.2) stable; urgency=medium
 
   * Fix dynamic DHCPv6 prefix placeholders at non-hextet prefix
     boundaries.
 
- -- Felix Jacobi <felix.jacobi@iserv.eu>  Thu, 27 Aug 2026 00:48:46 +0200
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Thu, 27 Aug 2026 01:23:34 +0200
 
 stsbl-iserv-config-ipv6 (26.08.27.1) stable; urgency=medium
 

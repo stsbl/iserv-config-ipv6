@@ -19,5 +19,8 @@ like($source, qr/sla_len\s+"Delegierte Präfixlänge:/, 'menu exposes the delega
 like($source, qr/^REQUEST_NA=\$REQUEST_NA$/m, 'menu persists the IA_NA setting');
 like($source, qr/^SLA_LEN=\$SLA_LEN$/m, 'menu persists the delegated prefix length');
 like($source, qr/valid_prefix_length\(\) \{ \[\[ "\$1" =~ \^\[0-9\]\+\$/, 'prefix length accepts numeric input only');
+like($source, qr{DSL_INTERFACE=/usr/lib/iserv/iserv-ipv6-dsl-interface}, 'menu applies the generated DSL ifupdown stanza');
+like($source, qr/\"\$DSL_INTERFACE\" --apply/, 'menu applies the DSL interface configuration before checks');
+like($source, qr/iservchk network dsl dhcpcd/, 'menu regenerates network and dhcpcd checks after saving');
 
 done_testing;

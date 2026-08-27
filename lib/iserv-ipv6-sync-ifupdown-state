@@ -1,0 +1,59 @@
+#!/bin/sh
+# Synchronize DHCPv6 delegation options from ifupdown's parsed configuration.
+# The generated dhcpcd.conf consumes these state files.
+set -eu
+
+config_dir=${ISERV_IPV6_DHCP_CONFIG_DIR:-/var/lib/iserv/config}
+state_dir=${ISERV_IPV6_DHCPCD_STATE_DIR:-/var/lib/iserv/config-ipv6/dhcpcd}
+interfaces=${ISERV_IPV6_INTERFACES_FILE:-/etc/network/interfaces.d/ipv6}
+ifquery=${ISERV_IPV6_IFQUERY:-ifquery}
+
+option_value()
+{
+  interface=$1
+  option=$2
+  "$ifquery" -i "$interfaces" "$interface" 2>/dev/null |
+    awk -F ': ' -v option="$option" '$1 == option { print substr($0, length($1) + 3); exit }'
+}
+
+sync_value()
+{
+  interface=$1
+  suffix=$2
+  shift 2
+  value=
+  for option in "$@"
+  do
+    value=$(option_value "$interface" "$option")
+    [ -n "$value" ] && break
+  done
+
+  target="$state_dir/$interface.$suffix"
+  if [ -n "$value" ]
+  then
+    mkdir -p "$state_dir"
+    printf '%s\n' "$value" > "$target"
+  else
+    rm -f "$target"
+  fi
+}
+
+if [ -r "$config_dir/ipv6-dhcp-interfaces.list" ]
+then
+  while IFS= read -r interface
+  do
+    [ -n "$interface" ] || continue
+    sync_value "$interface" sla-len dhcpcd-sla-len wide-dhcpv6-sla-len
+    sync_value "$interface" request-na dhcpcd-request-na wide-dhcpv6-request-na
+  done < "$config_dir/ipv6-dhcp-interfaces.list"
+fi
+
+if [ -r "$config_dir/ipv6-delegation-interfaces.list" ]
+then
+  while IFS= read -r interface
+  do
+    [ -n "$interface" ] || continue
+    sync_value "$interface" sla-id dhcpcd-sla-id wide-dhcpv6-sla-id
+    sync_value "$interface" ifid dhcpcd-ifid wide-dhcpv6-ifid
+  done < "$config_dir/ipv6-delegation-interfaces.list"
+fi
