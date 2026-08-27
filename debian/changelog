@@ -1,3 +1,10 @@
+stsbl-iserv-config-ipv6 (26.08.27.4) stable; urgency=medium
+
+  * Depend on Python for IPv6 prefix helper
+  * Emit DHCPv6 restart check from generator
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Thu, 27 Aug 2026 18:39:15 +0200
+
 stsbl-iserv-config-ipv6 (26.08.27.3) stable; urgency=medium
 
   * Fix: import DHCPv6 migration state before stopping clients, preserve
