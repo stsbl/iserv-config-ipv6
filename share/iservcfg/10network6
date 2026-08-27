@@ -458,6 +458,21 @@ while (1)
     system_v "iservchk", sort @services;
     last;
   }
+  elsif ($sel eq "dsl" and exists $conf{dsl})
+  {
+    # DSL IPv6 is configured together with the PPP peer.  It is an upstream
+    # for prefix delegation, but not a generic Ethernet interface.
+    system_v "iservcfg", "dsl6";
+    %conf = %{( ifs_parse )};
+    %dhcp_interfaces = -f $fn_dhcp
+      ? map { $_ => 1 } grep { length } split /\n/, path($fn_dhcp)->slurp_utf8
+      : ();
+    %delegation_interfaces = -f $fn_delegation
+      ? map { $_ => 1 } grep { length } split /\n/, path($fn_delegation)->slurp_utf8
+      : ();
+    %changes = ();
+    next;
+  }
   elsif ($sel eq "remove")
   {
     if (my @rem = checklist "Entfernen", map {($_, "Netzwerkschnittstelle $_", 0)} sort keys %ifs)

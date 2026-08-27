@@ -51,6 +51,15 @@ is($exit, 0, "generator exits successfully: $errors");
 like($output, qr/^interface wan0\n\tipv6rs\n\tia_na 1\n\tia_pd 1\/::\/56 br100\/0\/64 br200\/24\/64\n/m,
     'generator emits the regular delegated prefix configuration');
 
+open my $br200_ifid, '>', "$state/dhcpcd/br200.ifid" or die $!;
+print {$br200_ifid} "42\n";
+close $br200_ifid;
+($exit, $output, $errors) = run_generator();
+is($exit, 0, "generator accepts an optional delegated interface identifier: $errors");
+like($output, qr/^\tia_pd 1\/::\/56 br100\/0\/64 br200\/24\/64\/42$/m,
+    'generator renders a configured interface identifier as dhcpcd IA_PD suffix');
+unlink "$state/dhcpcd/br200.ifid" or die $!;
+
 open my $request_na, '>', "$state/dhcpcd/wan0.request-na" or die $!;
 print {$request_na} "0\n";
 close $request_na;

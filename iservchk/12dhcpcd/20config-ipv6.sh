@@ -1,6 +1,7 @@
 #!/bin/sh
 
 /usr/lib/iserv/iserv-ipv6-import-wide-state
+/usr/lib/iserv/iserv-ipv6-sync-ifupdown-state
 
 if [ -s /var/lib/iserv/config/ipv6-dhcp-interfaces.list ]
 then

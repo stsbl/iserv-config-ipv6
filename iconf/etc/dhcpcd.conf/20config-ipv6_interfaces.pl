@@ -72,7 +72,11 @@ if (@downstreams)
     my $sla_id = path($sla_file)->slurp_utf8;
     chomp $sla_id;
     next unless $sla_id =~ /^[0-9a-f]+$/i;
-    push @delegations, "$interface/" . hex($sla_id) . '/64';
+    my $ifid_file = "$state_dir/$interface.ifid";
+    my $ifid = -f $ifid_file ? path($ifid_file)->slurp_utf8 : '';
+    chomp $ifid;
+    my $suffix = $ifid =~ /^\d+$/ ? "/$ifid" : '';
+    push @delegations, "$interface/" . hex($sla_id) . "/64$suffix";
   }
   my $iaid_file = "$state_dir/$upstream.iaid";
   my $iaid = -f $iaid_file ? int(path($iaid_file)->slurp_utf8) : 1;

@@ -1,0 +1,75 @@
+#!/bin/sh
+# Apply DSL IPv6's static ifupdown stanza and its dhcpcd upstream declaration.
+set -eu
+
+config=${ISERV_IPV6_DSL_CONFIG:-/var/lib/iserv/config/ipv6-dsl}
+interfaces=${ISERV_IPV6_INTERFACES_FILE:-/etc/network/interfaces.d/ipv6}
+config_dir=${ISERV_IPV6_DHCP_CONFIG_DIR:-/var/lib/iserv/config}
+dhcp_interfaces="$config_dir/ipv6-dhcp-interfaces.list"
+begin='# BEGIN stsbl-iserv-config-ipv6 DSL DHCPv6'
+end='# END stsbl-iserv-config-ipv6 DSL DHCPv6'
+
+ENABLED=0
+REQUEST_PREFIX=1
+REQUEST_NA=1
+SLA_LEN=62
+if [ -r "$config" ]; then
+  while IFS='=' read -r key value; do
+    case "$key" in
+      ENABLED) ENABLED=$value ;;
+      REQUEST_PREFIX) REQUEST_PREFIX=$value ;;
+      REQUEST_NA) REQUEST_NA=$value ;;
+      SLA_LEN) SLA_LEN=$value ;;
+    esac
+  done < "$config"
+fi
+
+case "$ENABLED:$REQUEST_PREFIX:$REQUEST_NA:$SLA_LEN" in
+  0:[01]:[01]:[0-9]*|1:[01]:[01]:[0-9]*) ;;
+  *) exit 2 ;;
+esac
+[ "$SLA_LEN" -le 128 ] || exit 2
+
+case "${1:---apply}" in
+  --apply|--check) ;;
+  *) echo "Usage: $0 [--apply|--check]" >&2; exit 2 ;;
+esac
+
+mkdir -p "$(dirname "$interfaces")" "$config_dir"
+[ -f "$interfaces" ] || : > "$interfaces"
+tmp=$(mktemp "${interfaces}.XXXXXX")
+list_tmp=$(mktemp "${dhcp_interfaces}.XXXXXX")
+trap 'rm -f "$tmp" "$list_tmp"' EXIT HUP INT TERM
+awk -v begin="$begin" -v end="$end" '
+  $0 == begin { skip = 1; next }
+  skip && $0 == end { skip = 0; next }
+  !skip { print }
+' "$interfaces" > "$tmp"
+# Keep the managed block idempotent even if its previous removal left whitespace.
+perl -0pi -e 's/\s+\z//' "$tmp"
+
+if [ "$ENABLED" = 1 ]; then
+  cat >> "$tmp" <<EOF_STANZA
+
+$begin
+iface dsl inet6 manual
+	dhcpcd-request-na $REQUEST_NA
+	dhcpcd-sla-len $SLA_LEN
+$end
+EOF_STANZA
+fi
+
+if [ -r "$dhcp_interfaces" ]; then
+  grep -Fxv dsl "$dhcp_interfaces" > "$list_tmp" || :
+fi
+if [ "$ENABLED" = 1 ] && [ "$REQUEST_PREFIX" = 1 ]; then
+  printf '%s\n' dsl >> "$list_tmp"
+fi
+sort -u "$list_tmp" -o "$list_tmp"
+
+if [ "${1:---apply}" = --check ]; then
+  cmp -s "$interfaces" "$tmp" && cmp -s "$dhcp_interfaces" "$list_tmp"
+else
+  cmp -s "$interfaces" "$tmp" || cat "$tmp" > "$interfaces"
+  cmp -s "$dhcp_interfaces" "$list_tmp" || cat "$list_tmp" > "$dhcp_interfaces"
+fi

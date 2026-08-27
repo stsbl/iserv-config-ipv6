@@ -54,7 +54,7 @@ Test "migrate ipv6 dhcp prefix configuration"
     rm -f /etc/iserv/dhcpv6-prefix
   fi
 
-Test "add ifid and sla-id to all delegation interfaces"
+Test "add sla-id to all delegation interfaces"
   grep -qx 20config-ipv6_delg_ifid_sla-id /var/lib/iserv/config/update.log
   ---
   set -e
@@ -67,9 +67,6 @@ Test "add ifid and sla-id to all delegation interfaces"
     sed -i "/^iface $IF inet6 manual\$/a\\
   $(echo -n "\t")dhcpcd-sla-id $i" /etc/network/interfaces.d/ipv6
     echo "$i" > "/var/lib/iserv/config-ipv6/dhcpcd/$IF.sla-id"
-    sed -i "/^iface $IF inet6 manual\$/a\\
-  $(echo -n "\t")dhcpcd-ifid 1" /etc/network/interfaces.d/ipv6
-    echo 1 > "/var/lib/iserv/config-ipv6/dhcpcd/$IF.ifid"
     let i++ || true
   done
   echo 20config-ipv6_delg_ifid_sla-id >> /var/lib/iserv/config/update.log
