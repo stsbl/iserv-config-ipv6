@@ -1,3 +1,12 @@
+stsbl-iserv-config-ipv6 (26.08.27.3) stable; urgency=medium
+
+  * Fix: import DHCPv6 migration state before stopping clients, preserve
+    optional delegated interface identifiers, configure DSL IPv6 as dhcpcd
+    upstream
+  * Run IPv6 state migration through iservchk
+
+ -- Felix Jacobi <Felix@jacobi-hamburg.net>  Thu, 27 Aug 2026 18:23:25 +0200
+
 stsbl-iserv-config-ipv6 (26.08.27.2) stable; urgency=medium
 
   * Fix dynamic DHCPv6 prefix placeholders at non-hextet prefix
