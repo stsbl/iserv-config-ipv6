@@ -37,7 +37,9 @@ local %ENV = (%ENV,
     ISERV_IPV6_DHCPCD_STATE_DIR => $state,
     ISERV_IPV6_INTERFACES_FILE => $interfaces,
 );
-is(system("./$sync") >> 8, 0, 'state synchronizer exits successfully');
+isnt(system("./$sync") >> 8, 0, 'state synchronizer reports missing state without repairing it');
+ok(!-e "$state/wan0.sla-len", 'check mode does not write state');
+is(system("./$sync", '--repair') >> 8, 0, 'state synchronizer repairs missing state');
 
 for my $expected (
     ['wan0.sla-len', '60'], ['wan0.request-na', '0'],
@@ -61,7 +63,8 @@ iface lan0 inet6 manual
     dhcpcd-sla-id 2
 INTERFACES
 close $fh;
-is(system("./$sync") >> 8, 0, 'state synchronizer accepts configuration updates');
+isnt(system("./$sync") >> 8, 0, 'state synchronizer detects configuration updates');
+is(system("./$sync", '--repair') >> 8, 0, 'state synchronizer repairs configuration updates');
 open my $updated_fh, '<', "$state/wan0.sla-len" or die $!;
 chomp(my $updated_value = <$updated_fh>);
 is($updated_value, '56', 'updates existing state from ifquery');

@@ -3,6 +3,18 @@
 # The generated dhcpcd.conf consumes these state files.
 set -eu
 
+repair=0
+case "${1:-}" in
+  '') ;;
+  --repair) repair=1 ;;
+  *)
+    echo "Usage: $0 [--repair]" >&2
+    exit 2
+    ;;
+esac
+
+needs_repair=0
+
 config_dir=${ISERV_IPV6_DHCP_CONFIG_DIR:-/var/lib/iserv/config}
 state_dir=${ISERV_IPV6_DHCPCD_STATE_DIR:-/var/lib/iserv/config-ipv6/dhcpcd}
 interfaces=${ISERV_IPV6_INTERFACES_FILE:-/etc/network/interfaces.d/ipv6}
@@ -31,10 +43,19 @@ sync_value()
   target="$state_dir/$interface.$suffix"
   if [ -n "$value" ]
   then
-    mkdir -p "$state_dir"
-    printf '%s\n' "$value" > "$target"
-  else
-    rm -f "$target"
+    if [ ! -f "$target" ] || [ "$(cat "$target")" != "$value" ]
+    then
+      needs_repair=1
+      if [ "$repair" -eq 1 ]
+      then
+        mkdir -p "$state_dir"
+        printf '%s\n' "$value" > "$target"
+      fi
+    fi
+  elif [ -e "$target" ]
+  then
+    needs_repair=1
+    [ "$repair" -eq 1 ] && rm -f "$target"
   fi
 }
 
@@ -57,3 +78,9 @@ then
     sync_value "$interface" ifid dhcpcd-ifid wide-dhcpv6-ifid
   done < "$config_dir/ipv6-delegation-interfaces.list"
 fi
+
+if [ "$repair" -eq 1 ]
+then
+  exit 0
+fi
+exit "$needs_repair"

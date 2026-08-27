@@ -2,6 +2,18 @@
 # Import the WIDE DHCPv6 client identity into dhcpcd state.
 set -eu
 
+repair=0
+case "${1:-}" in
+  '') ;;
+  --repair) repair=1 ;;
+  *)
+    echo "Usage: $0 [--repair]" >&2
+    exit 2
+    ;;
+esac
+
+needs_repair=0
+
 config_dir=${ISERV_IPV6_DHCP_CONFIG_DIR:-/var/lib/iserv/config}
 wide_duid_file=${ISERV_IPV6_WIDE_DUID_FILE:-/var/lib/dhcpv6/dhcp6c_duid}
 state_dir=${ISERV_IPV6_DHCPCD_STATE_DIR:-/var/lib/iserv/config-ipv6/dhcpcd}
@@ -22,8 +34,12 @@ import_wide_duid()
   [ "${#value}" -eq "$((length * 2))" ] || return 0
 
   value=$(printf '%s\n' "$value" | sed 's/../&:/g; s/:$//')
-  mkdir -p "$state_dir"
-  printf '%s\n' "$value" > "$target"
+  needs_repair=1
+  if [ "$repair" -eq 1 ]
+  then
+    mkdir -p "$state_dir"
+    printf '%s\n' "$value" > "$target"
+  fi
 
   # WIDE's generated configuration always used id-assoc pd 0.  Retaining the
   # IAID makes this a real client-identity migration instead of a new request.
@@ -33,9 +49,19 @@ import_wide_duid()
     do
       [ -n "$interface" ] || continue
       target="$state_dir/$interface.iaid"
-      [ -e "$target" ] || printf '0\n' > "$target"
+      if [ ! -e "$target" ]
+      then
+        needs_repair=1
+        [ "$repair" -eq 1 ] && printf '0\n' > "$target"
+      fi
     done < "$config_dir/ipv6-dhcp-interfaces.list"
   fi
 }
 
 import_wide_duid
+
+if [ "$repair" -eq 1 ]
+then
+  exit 0
+fi
+exit "$needs_repair"
