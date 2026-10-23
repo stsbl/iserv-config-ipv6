@@ -1,13 +1,12 @@
 if [ "$PHASE" = "post-up" ] && [ "$ADDRFAM" = "inet6" ]
 then
-  # restart wide dhcpv6 client if neccessary
+  # Do not wait for dhcpcd here: its start is ordered after the network.
   if [ "$METHOD" = "manual" ] &&
       (grep -qx "$IFACE" /var/lib/iserv/config/ipv6-delegation-interfaces.list ||
       grep -qx "$IFACE" /var/lib/iserv/config/ipv6-dhcp-interfaces.list)
   then
-    echo "Restarting WIDE DHCPv6 client ..."
-    systemctl try-restart dhcpcd.service
-    echo "Done."
+    echo "Scheduling dhcpcd restart ..."
+    systemctl --no-block try-restart dhcpcd.service
   fi
 fi
 

@@ -29,7 +29,7 @@ then
       if [ "$DSL_WAITING" ]
       then
         echo 2 > "/proc/sys/net/ipv6/conf/$IFACE/accept_ra"
-        systemctl try-restart dhcpcd
+        systemctl --no-block try-restart dhcpcd.service
       fi
     ) &
   fi
@@ -39,6 +39,7 @@ then
   echo 2 > "$ACCEPT_RA_MARKER_FILE"
   iconf repair /etc/sysctl.conf || true
   sysctl -p -q || true
-  systemctl try-restart dhcpcd
+  # dhcpcd may be waiting for this ifupdown operation to finish.
+  systemctl --no-block try-restart dhcpcd.service
 fi
 

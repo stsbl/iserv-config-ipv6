@@ -1,3 +1,4 @@
 # Restart dhcpcd after PPP has created its IPv6 interface.
-systemctl restart dhcpcd.service
+# Its start may be ordered after the network service running this hook.
+systemctl --no-block try-restart dhcpcd.service
 
