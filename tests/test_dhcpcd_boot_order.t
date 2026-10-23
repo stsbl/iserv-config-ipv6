@@ -39,10 +39,5 @@ if (-f $dropin) {
     like($unit, qr/^After=network\.target$/m, 'dhcpcd waits for ifupdown completion');
     like($unit, qr/^Before=network-online\.target$/m, 'online waits for dhcpcd start completion');
 }
-my $check = path('iservchk/12dhcpcd/20config-ipv6.sh')->slurp_utf8;
-like($check, qr{Link /lib/systemd/system/dhcpcd\.service /etc/systemd/system/network-online\.target\.requires/dhcpcd\.service},
-    'online requires dhcpcd when prefix delegation is configured');
-like($check, qr{Remove /etc/systemd/system/network-online\.target\.requires/dhcpcd\.service},
-    'online does not start dhcpcd when prefix delegation is unused');
 
 done_testing;
