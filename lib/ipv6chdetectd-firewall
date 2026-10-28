@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+# Update managed IPv4/IPv6 LAN sets before applying rules that reference them.
+if iservpkginstalled iserv-portal; then
+  chkipsets -q -r iserv-portal-lan
+fi
+systemctl restart ferm.service

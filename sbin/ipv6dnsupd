@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 exec 2> >(grep -vE "^dig: couldn't get address for 'ns.iserv.eu': failure$")
 
@@ -15,9 +16,18 @@ run_regdns()
 
 DEFIF="$(. /usr/lib/iserv/ipv6_defif)"
 
-[ -z "$DEFIF" ] && exit 0
 
-IPs="$(netquery6 -i "$DEFIF" -g "ip" | while read i
+query_status=0
+addresses=
+if [ -n "$DEFIF" ]; then
+  addresses="$(netquery6 -i "$DEFIF" -g "ip")" || query_status=$?
+fi
+# netquery6 returns 1 for a legitimate empty result; other failures must never
+# be interpreted as withdrawal of all addresses.
+if [ "$query_status" -gt 1 ]; then
+  exit "$query_status"
+fi
+IPs="$(printf '%s\n' "$addresses" | while read -r i
 do
   [ -z "$i" ] && continue
   perl -e 'use Net::IP; print Net::IP::ip_expand_address "'$i'", 6;'
@@ -32,7 +42,7 @@ do
   echo
 done | sort)"
 
-if ! [ -z "$IPs" ] && ! [ "$IPs" = "$CURIPs" ]
+if ! [ "$IPs" = "$CURIPs" ]
 then
   run_regdns -d "$(hostname). AAAA"
   for i in ${IPs[@]}

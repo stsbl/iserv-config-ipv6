@@ -1,0 +1,53 @@
+#!/bin/bash
+set -e
+. /usr/lib/iserv/ipv6chdetectd-functions
+[ "$IPV6CHDETECTD_PHASE" = configure ] || exit 0
+lan_config()
+{
+  ipv6_config "$@"
+  ipv6_requires "$1" 30ipv6-support-lan
+}
+
+if iservpkginstalled iserv-update; then
+  # ifupdown reads this on its next invocation; preparation hooks already
+  # reconcile the managed ULA addresses without bouncing physical interfaces.
+  ipv6_config @interfaces restart /etc/network/interfaces.d/ipv6-ula
+  ipv6_action @interfaces true
+  ipv6_config @sysctl restart /etc/sysctl.conf
+  ipv6_action @sysctl sysctl -p /etc/sysctl.conf
+  lan_config ssh.service reload /etc/ssh/sshd_config
+  ipv6_validate ssh.service sshd -t
+fi
+if iservpkginstalled iserv-server-bind; then
+  lan_config bind9.service reload /etc/bind/named.conf.iserv
+  ipv6_validate bind9.service named-checkconf
+fi
+# The LAN hostlist is supplied by iserv-server-exim, not its base package.
+if iservpkginstalled iserv-server-exim; then
+  lan_config exim4.service reload /etc/exim4/exim4.conf
+  ipv6_validate exim4.service exim4 -bV
+fi
+if iservpkginstalled iserv-server-spamassassin; then
+  service=spamd.service
+  [ "$(iservdebianrelease)" != bullseye ] || service=spamassassin.service
+  lan_config "$service" restart /etc/spamassassin/iserv.cf
+  ipv6_validate "$service" spamassassin --lint
+fi
+if iservpkginstalled iserv-server-ferm; then
+  # Includes OpenLDAP and Docker contributions when their packages are installed.
+  lan_config ferm.service restart /etc/ferm.d/20iserv.conf /etc/ferm.d/99defaults.conf
+  ipv6_validate ferm.service ferm --noexec /etc/ferm/ferm.conf
+  ipv6_action ferm.service /usr/lib/iserv/ipv6chdetectd-firewall
+fi
+if iservpkginstalled putty-iserv && iservpkginstalled iserv-server-nginx; then
+  lan_config nginx.service reload /etc/nginx/server-iserv
+  ipv6_validate nginx.service nginx -t
+fi
+if iservpkginstalled iserv-server-php; then
+  # php-fpm.service propagates reloads to the running versioned FPM units.
+  ipv6_watch php-fpm.service reload /var/lib/iserv/config-file/config.php
+  ipv6_requires php-fpm.service 30ipv6-support-lan
+fi
+if ! iservpkginstalled iserv-portal && iservpkginstalled iserv-regdns; then
+  ipv6_always @ipv6dns ipv6dnsupd
+fi
