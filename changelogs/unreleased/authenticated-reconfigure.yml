@@ -1,0 +1,6 @@
+---
+text: "Der DHCPv6-Client akzeptiert authentifizierte Aufforderungen zur sofortigen Erneuerung seiner Konfiguration. Änderungen an der systemd-Konfiguration werden bei Paketaktualisierungen übernommen."
+audience: admins
+type: added
+urgency: medium
+highlight: false
