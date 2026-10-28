@@ -92,4 +92,9 @@ like($output, qr/^interface dsl\n\tipv6rs\n\tia_pd 1\/::\/56 br100\/0\/64 br200\
     'generator prefers explicitly enabled DSL IPv6 for delegated-prefix configuration');
 unlike($output, qr/^interface wan0\n/m, 'generator does not retain another prefix-requesting interface when DSL is explicit');
 
+like($output, qr/^option dhcp6_reconfigure_accept$/m,
+    'client explicitly accepts authenticated DHCPv6 Reconfigure');
+unlike($output, qr/^\s*noauthrequired\b/m,
+    'Reconfigure authentication remains required');
+
 done_testing;
