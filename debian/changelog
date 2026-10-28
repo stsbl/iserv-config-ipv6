@@ -1,6 +1,7 @@
 stsbl-iserv-config-ipv6 (26.08.27.4) stable; urgency=medium
 
-  * Explicitly accept authenticated DHCPv6 Reconfigure messages
+  * Explicitly accept authenticated DHCPv6 Reconfigure messages while
+    preserving DNS, domain search and Rapid Commit requests
   * Depend on Python for IPv6 prefix helper
   * Emit DHCPv6 restart check from generator
   * Avoid blocking network startup on dhcpcd restarts from ifupdown and PPP

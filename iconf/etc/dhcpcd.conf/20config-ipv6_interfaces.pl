@@ -50,6 +50,8 @@ nohook hostname, ntp
 
 option domain_name_servers, domain_name, domain_search
 option rapid_commit
+# Explicit DHCPv6 options disable the automatic mapping from IPv4 options.
+option dhcp6_name_servers, dhcp6_domain_search, dhcp6_rapid_commit
 # Accept authenticated server-triggered renewals (RFC 8415 RKAP).
 option dhcp6_reconfigure_accept
 

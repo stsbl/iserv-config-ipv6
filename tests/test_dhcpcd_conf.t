@@ -97,4 +97,7 @@ like($output, qr/^option dhcp6_reconfigure_accept$/m,
 unlike($output, qr/^\s*noauthrequired\b/m,
     'Reconfigure authentication remains required');
 
+like($output, qr/^option dhcp6_name_servers, dhcp6_domain_search, dhcp6_rapid_commit$/m,
+    'explicit IPv6 acceptance preserves DNS, search and Rapid Commit requests');
+
 done_testing;
